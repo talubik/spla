@@ -42,7 +42,7 @@ def main():
     parser.add_argument("--verbose", help="allow verbose compiler output")
     args = parser.parse_args()
 
-    build_config_args = ["cmake", ".", "-B", args.build_dir, "-G", "Ninja", f"-DCMAKE_BUILD_TYPE={args.build_type}",
+    build_config_args = ["cmake", ".", "-B", args.build_dir, "-G", "Ninja", f"-DCMAKE_BUILD_TYPE={args.build_type}", "-DCMAKE_VERBOSE_MAKEFILE=ON"
                          f"-DSPLA_BUILD_TESTS={args.tests}", f"-DSPLA_BUILD_EXAMPLES={args.examples}",
                          f"-DSPLA_BUILD_OPENCL={args.opencl}"]
 

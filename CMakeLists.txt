@@ -207,6 +207,16 @@ if (SPLA_BUILD_OPENCL)
     add_library(OpenCL::HeadersCpp ALIAS HeadersCpp)
     target_include_directories(HeadersCpp INTERFACE deps/opencl-headers-hpp/include)
     target_link_libraries(HeadersCpp INTERFACE OpenCL::Headers)
+    add_library(vortex_lib SHARED dummy.cpp)
+    target_link_options(vortex_lib INTERFACE
+    -Wl,-rpath,/home/shamil/tools/llvm-vortex/lib
+    )
+    target_link_libraries(vortex_lib INTERFACE
+    -L/home/shamil/practika_autumn/vortex/build/runtime
+    -lvortex
+    -L/home/shamil/tools/pocl/lib
+    -lOpenCL
+    )
 endif ()
 
 if (SPLA_BUILD_EXAMPLES)
@@ -275,7 +285,8 @@ if (SPLA_BUILD_OPENCL)
             )
 endif ()
 
-add_library(spla SHARED
+
+add_library(spla STATIC
         # C++ core
         include/spla.hpp
         include/spla/algorithm.hpp
@@ -361,18 +372,19 @@ add_library(spla SHARED
         src/binding/c_type.cpp
         src/binding/c_vector.cpp
         # C++ optional part
-        ${SRC_OPENCL})
-
+        ${SRC_OPENCL}) 
 target_include_directories(spla PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
 target_include_directories(spla PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
 
 set_target_properties(spla PROPERTIES OUTPUT_NAME "spla_${SPLA_ARCH}")
 target_compile_definitions(spla PRIVATE SPLA_EXPORTS)
-
 target_link_libraries(spla PRIVATE robin_hood)
 target_link_libraries(spla PRIVATE svector)
 
+
+
 if (SPLA_BUILD_OPENCL)
+    target_link_libraries(spla PRIVATE vortex_lib)
     target_link_libraries(spla PUBLIC OpenCL)
     target_link_libraries(spla PUBLIC OpenCL::HeadersCpp)
     target_compile_definitions(spla PUBLIC CL_TARGET_OPENCL_VERSION=120)
