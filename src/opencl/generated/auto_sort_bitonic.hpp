@@ -73,7 +73,7 @@ __kernel void bitonic_sort_local(__global uint* g_keys,
     const uint grid  = get_group_id(0);
     const uint lid   = get_local_id(0);
     const uint lsize = get_local_size(0);
-
+    
     const uint offset    = grid * BLOCK_SIZE;
     const uint border    = min(offset + BLOCK_SIZE, total_n);
     const uint n         = border - offset;
@@ -141,7 +141,6 @@ __kernel void bitonic_sort_global(__global uint* g_keys,
     const uint lsize     = get_local_size(0);
     const uint n_aligned = ceil_to_pow2(n);
     const uint n_threads = n_aligned / 2;
-
     for (uint segment_size = segment_start; segment_size <= n_aligned; segment_size *= 2) {
         const uint segment_size_half = segment_size / 2;
 

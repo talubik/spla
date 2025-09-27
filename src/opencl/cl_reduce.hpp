@@ -77,7 +77,7 @@ namespace spla {
             queue.enqueueReadBuffer(cl_sum, true, 0, sizeof(result), &result);
             return;
         }
-
+        printf("%s \n",op_reduce->get_name().c_str());
         CLProgramBuilder builder;
         builder.set_name("reduce_wide")
                 .add_define("WARP_SIZE", get_acc_cl()->get_wave_size())
@@ -91,7 +91,7 @@ namespace spla {
         const uint groups_count  = div_up_clamp(n, block_size, 1, optimal_split);
 
         cl::Buffer cl_sum_group(cl_acc->get_context(), CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY, sizeof(T) * groups_count);
-
+        //printf("%s \n",builder.get_program()->get_source().c_str());
         auto kernel_phase_1 = builder.make_kernel("reduce");
         kernel_phase_1.setArg(0, values);
         kernel_phase_1.setArg(1, cl_sum_group);

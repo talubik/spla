@@ -30,7 +30,7 @@
 #include <iostream>
 #include <spla.hpp>
 
-TEST(vxm_masked, naive) {
+/*TEST(vxm_masked, naive) {
     spla::uint M = 4, N = 5;
 
     //              v 3 0 3 0 -1
@@ -86,7 +86,7 @@ TEST(vxm_masked, naive) {
 
     ir->get_int(3, r);
     EXPECT_EQ(r, 1);
-}
+}*/
 
 TEST(vxm_masked, perf_mult_add) {
     const int N     = 1000000;

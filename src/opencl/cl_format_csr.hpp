@@ -45,7 +45,7 @@ namespace spla {
                      const T*    Ax,
                      CLCsr<T>&   storage) {
         auto&      ctx   = get_acc_cl()->get_context();
-        const auto flags = CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR;
+        const auto flags = CL_MEM_READ_WRITE ;
 
         cl::Buffer cl_Ap(ctx, flags, (n_rows + 1) * sizeof(uint), (void*) Ap);
         cl::Buffer cl_Aj(ctx, flags, n_values * sizeof(uint), (void*) Aj);
@@ -63,7 +63,7 @@ namespace spla {
                        std::size_t n_values,
                        CLCsr<T>&   storage) {
         auto&      ctx   = get_acc_cl()->get_context();
-        const auto flags = CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS;
+        const auto flags = CL_MEM_READ_WRITE ;
 
         cl::Buffer cl_Ap(ctx, flags, (n_rows + 1) * sizeof(uint));
         cl::Buffer cl_Aj(ctx, flags, n_values * sizeof(uint));

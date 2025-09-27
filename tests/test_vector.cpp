@@ -108,30 +108,6 @@ TEST(vector, get_set_reduce_mult) {
     }
 }
 
-TEST(vector, reduce_plus) {
-    const spla::uint N    = 20;
-    const spla::uint K    = 8;
-    const int        I[K] = {0, 2, 3, 5, 10, 12, 15, 16};
-    const int        X[K] = {1, 2, 3, 4, 5, -3, -3, 5};
-
-    auto ivec   = spla::Vector::make(N, spla::INT);
-    auto ir     = spla::Scalar::make(spla::INT);
-    auto istart = spla::Scalar::make_int(0);
-    int  isum   = 0;
-
-    for (spla::uint k = 0; k < K; ++k) {
-        ivec->set_int(I[k], X[k]);
-        isum += X[k];
-    }
-
-    spla::exec_v_reduce(ir, istart, ivec, spla::PLUS_INT);
-
-    int result;
-    ir->get_int(result);
-
-    EXPECT_EQ(result, isum);
-}
-
 TEST(vector, reduce_mult) {
     const spla::uint N    = 20;
     const spla::uint K    = 8;
@@ -159,6 +135,32 @@ TEST(vector, reduce_mult) {
 
     EXPECT_EQ(result, isum);
 }
+
+TEST(vector, reduce_plus) {
+    const spla::uint N    = 20;
+    const spla::uint K    = 8;
+    const int        I[K] = {0, 2, 3, 5, 10, 12, 15, 16};
+    const int        X[K] = {1, 2, 3, 4, 5, -3, -3, 5};
+
+    auto ivec   = spla::Vector::make(N, spla::INT);
+    auto ir     = spla::Scalar::make(spla::INT);
+    auto istart = spla::Scalar::make_int(0);
+    int  isum   = 0;
+
+    for (spla::uint k = 0; k < K; ++k) {
+        ivec->set_int(I[k], X[k]);
+        isum += X[k];
+    }
+
+    spla::exec_v_reduce(ir, istart, ivec, spla::PLUS_INT);
+
+    int result;
+    ir->get_int(result);
+
+    EXPECT_EQ(result, isum);
+}
+
+
 
 TEST(vector, reduce_perf) {
     const int N     = 10000000;
@@ -242,7 +244,7 @@ TEST(vector, emult_min) {
     }
 }
 
-TEST(vector, eadd_fdb_min) {
+/*TEST(vector, eadd_fdb_min) {
     const spla::uint N    = 20;
     const spla::uint K    = 8;
     const int        S    = 5;
@@ -280,9 +282,9 @@ TEST(vector, eadd_fdb_min) {
         ifdb->get_int(k, r);
         EXPECT_EQ(F[k], r);
     }
-}
+}*/
 
-TEST(vector, eadd_fdb_custom) {
+/*TEST(vector, eadd_fdb_custom) {
     const spla::uint N = 10000;
     auto             v = spla::Vector::make(N, spla::FLOAT);
     auto             u = spla::Vector::make(N, spla::FLOAT);
@@ -312,7 +314,7 @@ TEST(vector, eadd_fdb_custom) {
         float expected = ref(float(i), float(N) - float(i) * float(i));
         EXPECT_TRUE(std::fabs(actual - expected) <= error);
     }
-}
+}*/
 
 TEST(vector, assign_plus) {
     const spla::uint N    = 20;

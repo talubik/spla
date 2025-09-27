@@ -88,7 +88,6 @@ __kernel void reduce_by_key_scalar(__global const uint* g_keys,
                                    const uint           n_keys,
                                    const uint           n_groups) {
     const uint gid = get_global_id(0);
-
     if (gid < n_groups) {
         const uint start_idx = lower_bound(gid, 0, n_keys, g_offsets);
         TYPE       value     = g_values[start_idx];

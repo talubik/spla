@@ -40,6 +40,9 @@ def main():
     parser.add_argument("--nt", default="4", help="number of os threads for build")
     parser.add_argument("--arch", help="target architecture on MacOS `x64` or `arm64`")
     parser.add_argument("--verbose", help="allow verbose compiler output")
+    parser.add_argument("--vortex", default="NO", help="build with vortex support")
+    parser.add_argument("--vortex-tooldir", help="path to vortex tools")
+    parser.add_argument("--vortex-dir", help="path to vortex dirextory")
     args = parser.parse_args()
 
     build_config_args = ["cmake", ".", "-B", args.build_dir, "-G", "Ninja", f"-DCMAKE_BUILD_TYPE={args.build_type}", "-DCMAKE_VERBOSE_MAKEFILE=ON"
@@ -48,6 +51,12 @@ def main():
 
     if args.arch:
         build_config_args += [f"-DCMAKE_OSX_ARCHITECTURES={args.arch}"]
+    if args.vortex:
+        build_config_args += [f"-DSPLA_BUILD_FOR_VORTEX={args.vortex}"]
+        if args.vortex_tooldir:
+            build_config_args += [f"-DSPLA_VORTEX_TOOL_DIRECTORY={args.vortex_tooldir}"]
+        if args.vortex_dir:
+            build_config_args += [f"-DSPLA_VORTEX_DIRECTORY={args.vortex_dir}"]
 
     build_run_args = ["cmake", "--build", args.build_dir, "--target", args.target, "-j", args.nt]
 

@@ -112,7 +112,12 @@ namespace spla {
         m_is_img    = false;
 
         auto dev_type = m_device.getInfo<CL_DEVICE_TYPE>();
-
+        if (m_vendor_id == 0 && dev_type == CL_DEVICE_TYPE_GPU){
+            m_vendor_code = VENDOR_CODE_POCL_CPU;
+            m_default_wgs = 16;
+            m_wave_size   = 4;
+            m_is_pocl     = true;
+        }
         if (m_vendor_id == 0x10006 &&
             dev_type == CL_DEVICE_TYPE_CPU) {
             m_vendor_code = VENDOR_CODE_POCL_CPU;
@@ -157,13 +162,14 @@ namespace spla {
             m_wave_size   = 32;
             m_is_img      = true;
         }
-
+        
         if (m_vendor_code.empty()) {
             LOG_MSG(Status::Error, "failed to match one of the pre-defined vendors");
+            
             m_default_wgs = 64;
             m_wave_size   = 8;
         }
-
+        std::string ext = m_device.getInfo<CL_DEVICE_EXTENSIONS>();
 
         std::stringstream desc;
         desc << "OpenCL Acc " << m_platform.getInfo<CL_PLATFORM_NAME>()
@@ -171,7 +177,9 @@ namespace spla {
              << " vendor:" << m_vendor_code
              << " mcu:" << m_max_cu
              << " wave:" << m_wave_size
-             << " mwgs:" << m_max_wgs;
+             << " mwgs:" << m_max_wgs
+             << " ext: " << ext;
+            
 
         m_description = desc.str();
 

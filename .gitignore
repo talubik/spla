@@ -2,7 +2,7 @@
 /**/.idea
 /*build*/
 /**/.vscode
-
+trace
 # Graph files
 graph-dataset.zip
 dataset*

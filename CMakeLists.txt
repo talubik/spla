@@ -7,6 +7,7 @@ project(spla LANGUAGES CXX)
 option(SPLA_BUILD_TESTS "Build test folder with modules tests" YES)
 option(SPLA_BUILD_EXAMPLES "Build library example applications with algorithms" YES)
 option(SPLA_BUILD_OPENCL "Build library with opencl backend" YES)
+option(SPLA_BUILD_FOR_VORTEX "Build library with Vortex OpenCL runtime support" NO)
 
 ######################################################################
 ## Internal definitions
@@ -21,6 +22,9 @@ set(SPLA_TARGET_WINDOWS NO)
 set(SPLA_TARGET_MACOSX NO)
 set(SPLA_ARCH)
 set(SPLA_EXT)
+set(SPLA_VORTEX_DIRECTORY)
+set(SPLA_VORTEX_TOOL_DIRECTORY)
+set(SPLA_LIB_TYPE SHARED)
 
 ####################################################################
 ## Define platform
@@ -192,31 +196,23 @@ if (SPLA_BUILD_OPENCL)
         target_link_libraries(OpenCL INTERFACE ${OpenCL_LIBRARIES})
     else ()
         message(STATUS "Add Khronos OpenCL C API header files")
-        add_subdirectory(deps/opencl-headers)
 
         message(STATUS "Add Khronos OpenCL ICD loaded library")
         set(OPENCL_ICD_LOADER_PIC ON)
         set(OPENCL_ICD_LOADER_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
         set(OPENCL_ICD_LOADER_BUILD_TESTING OFF CACHE BOOL "" FORCE)
-        add_subdirectory(deps/opencl-icd-loader)
+        #add_subdirectory(deps/opencl-icd-loader)
     endif ()
 
 
     message(STATUS "Add Khronos OpenCL HPP bindings")
     add_library(HeadersCpp INTERFACE)
     add_library(OpenCL::HeadersCpp ALIAS HeadersCpp)
-    target_include_directories(HeadersCpp INTERFACE deps/opencl-headers-hpp/include)
-    target_link_libraries(HeadersCpp INTERFACE OpenCL::Headers)
-    add_library(vortex_lib SHARED dummy.cpp)
-    target_link_options(vortex_lib INTERFACE
-    -Wl,-rpath,/home/shamil/tools/llvm-vortex/lib
-    )
-    target_link_libraries(vortex_lib INTERFACE
-    -L/home/shamil/practika_autumn/vortex/build/runtime
-    -lvortex
-    -L/home/shamil/tools/pocl/lib
-    -lOpenCL
-    )
+    ##target_include_directories(HeadersCpp INTERFACE deps/opencl-headers-hpp/include)
+    target_include_directories(HeadersCpp INTERFACE ${SPLA_VORTEX_TOOL_DIRECTORY}/pocl/include)
+    target_include_directories(HeadersCpp INTERFACE ${SPLA_VORTEX_TOOL_DIRECTORY}/pocl/include/hpp)
+    
+    
 endif ()
 
 if (SPLA_BUILD_EXAMPLES)
@@ -238,6 +234,17 @@ if (SPLA_BUILD_TESTS)
     add_subdirectory(deps/gtest)
 endif ()
 
+if(SPLA_BUILD_FOR_VORTEX)
+    if (NOT SPLA_VORTEX_DIRECTORY)
+        message(FATAL_ERROR "SPLA_VORTEX_DIRECTORY must be set to Vortex installation directory")
+    endif ()
+    if (NOT SPLA_VORTEX_TOOL_DIRECTORY)
+        message(FATAL_ERROR "SPLA_VORTEX_TOOL_DIRECTORY must be set to Vortex tools directory")
+    endif ()
+    message(STATUS "Add Vortex OpenCL runtime support")
+    set(SPLA_LIB_TYPE STATIC)
+endif()
+    
 ######################################################################
 ## Source code configuration
 
@@ -286,7 +293,7 @@ if (SPLA_BUILD_OPENCL)
 endif ()
 
 
-add_library(spla STATIC
+add_library(spla ${SPLA_LIB_TYPE}
         # C++ core
         include/spla.hpp
         include/spla/algorithm.hpp
@@ -376,6 +383,7 @@ add_library(spla STATIC
 target_include_directories(spla PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
 target_include_directories(spla PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src)
 
+
 set_target_properties(spla PROPERTIES OUTPUT_NAME "spla_${SPLA_ARCH}")
 target_compile_definitions(spla PRIVATE SPLA_EXPORTS)
 target_link_libraries(spla PRIVATE robin_hood)
@@ -384,7 +392,15 @@ target_link_libraries(spla PRIVATE svector)
 
 
 if (SPLA_BUILD_OPENCL)
-    target_link_libraries(spla PRIVATE vortex_lib)
+    if(SPLA_BUILD_FOR_VORTEX)
+        target_link_options(spla PUBLIC -Wl,-rpath=${SPLA_VORTEX_TOOL_DIRECTORY}/llvm-vortex/lib)
+        target_link_libraries(spla PUBLIC
+            -L${SPLA_VORTEX_DIRECTORY}/build/runtime
+            -lvortex
+            -L${SPLA_VORTEX_TOOL_DIRECTORY}/pocl/lib
+            -lOpenCL
+        )
+    endif()
     target_link_libraries(spla PUBLIC OpenCL)
     target_link_libraries(spla PUBLIC OpenCL::HeadersCpp)
     target_compile_definitions(spla PUBLIC CL_TARGET_OPENCL_VERSION=120)
