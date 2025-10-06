@@ -105,7 +105,13 @@ namespace spla {
         manager.register_constructor(FormatVector::AccDense, [](Storage& s) {
             s.get_ref(FormatVector::AccDense) = make_ref<CLDenseVec<T>>();
             auto* cl_dense                    = s.template get<CLDenseVec<T>>();
-            cl_dense_vec_resize(s.get_n_rows(), *cl_dense);
+            auto* cl_acc                      = get_acc_cl();
+            if (cl_acc->is_vortex()) {
+                cl_dense_vec_resize(s.get_n_rows(), *cl_dense,
+                                  CL_MEM_READ_WRITE);
+            } else {
+                cl_dense_vec_resize(s.get_n_rows(), *cl_dense);
+            }
         });
 
         manager.register_validator(FormatVector::AccCoo, [](Storage& s) {
@@ -120,13 +126,22 @@ namespace spla {
         manager.register_converter(FormatVector::CpuDense, FormatVector::AccDense, [](Storage& s) {
             auto* cpu_dense = s.template get<CpuDenseVec<T>>();
             auto* cl_dense  = s.template get<CLDenseVec<T>>();
-            cl_dense_vec_init(s.get_n_rows(), cpu_dense->Ax.data(), *cl_dense);
+            auto* cl_acc    = get_acc_cl();
+            if (cl_acc->is_vortex()) {
+                cl_dense_vec_init(s.get_n_rows(), cpu_dense->Ax.data(), *cl_dense,
+                                  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR);
+            } else {
+                cl_dense_vec_init(s.get_n_rows(), cpu_dense->Ax.data(), *cl_dense);
+            }
         });
         manager.register_converter(FormatVector::AccDense, FormatVector::CpuDense, [](Storage& s) {
             auto* cl_acc    = get_acc_cl();
             auto* cl_dense  = s.template get<CLDenseVec<T>>();
             auto* cpu_dense = s.template get<CpuDenseVec<T>>();
-            if (!cl_acc->is_img()) {
+            if (cl_acc->is_vortex()) {
+                cl_dense_vec_read(s.get_n_rows(), cpu_dense->Ax.data(), *cl_dense, cl_acc->get_queue_default(),
+                                  0);
+            } else if (!cl_acc->is_img()) {
                 cl_dense_vec_read(s.get_n_rows(), cpu_dense->Ax.data(), *cl_dense, cl_acc->get_queue_default());
             } else {
                 // On Imagination Technologies devices copying data to staging buffer created with CL_MEM_READ_ONLY flag does not affect this buffer.

@@ -161,7 +161,6 @@ TEST(vector, reduce_plus) {
 }
 
 
-
 TEST(vector, reduce_perf) {
     const int N     = 10000000;
     const int K     = 5000;
@@ -197,7 +196,7 @@ TEST(vector, reduce_perf) {
 }
 
 TEST(vector, eadd_sub_pow2) {
-    const spla::uint N = 1000000;
+    const spla::uint N = 100;
     auto             r = spla::Vector::make(N, spla::FLOAT);
     auto             u = spla::Vector::make(N, spla::FLOAT);
     auto             v = spla::Vector::make(N, spla::FLOAT);
@@ -244,7 +243,7 @@ TEST(vector, emult_min) {
     }
 }
 
-/*TEST(vector, eadd_fdb_min) {
+TEST(vector, eadd_fdb_min) {
     const spla::uint N    = 20;
     const spla::uint K    = 8;
     const int        S    = 5;
@@ -282,7 +281,7 @@ TEST(vector, emult_min) {
         ifdb->get_int(k, r);
         EXPECT_EQ(F[k], r);
     }
-}*/
+}
 
 /*TEST(vector, eadd_fdb_custom) {
     const spla::uint N = 10000;

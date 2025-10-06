@@ -103,8 +103,36 @@ namespace spla {
             auto& queue    = p_cl_acc->get_queue_default();
 
             cl_csr_resize<T>(R->get_n_rows(), p_cl_mask->values, *p_cl_R);
-            queue.enqueueCopyBuffer(p_cl_mask->Ap, p_cl_R->Ap, 0, 0, sizeof(uint) * (R->get_n_rows() + 1));
-            queue.enqueueCopyBuffer(p_cl_mask->Aj, p_cl_R->Aj, 0, 0, sizeof(uint) * (p_cl_R->values));
+            size_t n     = R->get_n_rows() + 1;
+            size_t bytes = n * sizeof(uint);
+
+            std::vector<uint> host_copy(n);
+
+            queue.enqueueReadBuffer(p_cl_mask->Ap, CL_TRUE,
+                                    0, bytes, host_copy.data());
+            queue.enqueueWriteBuffer(p_cl_R->Ap, CL_TRUE,
+                                     0, bytes, host_copy.data());
+            size_t n2     = p_cl_R->values;
+            size_t bytes2 = n2 * sizeof(uint);
+
+
+            std::vector<uint> host_copy2(n2);
+
+            queue.enqueueReadBuffer(
+                    p_cl_mask->Aj,   // источник
+                    CL_TRUE,         // блокирующий
+                    0,               // offset в src
+                    bytes2,          // сколько читать
+                    host_copy2.data()// куда писать
+            );
+
+            queue.enqueueWriteBuffer(
+                    p_cl_R->Aj,      // приёмник
+                    CL_TRUE,         // блокирующий
+                    0,               // offset в dst
+                    bytes2,          // сколько писать
+                    host_copy2.data()// источник
+            );
 
             auto kernel = program->make_kernel("mxmT_masked_csr_scalar");
             kernel.setArg(0, p_cl_A->Ap);
@@ -124,7 +152,8 @@ namespace spla {
 
             cl::NDRange exec_global(m_block_count * n_groups_to_dispatch, m_block_size);
             cl::NDRange exec_local(m_block_count, m_block_size);
-            CL_DISPATCH_PROFILED("exec", queue, kernel, cl::NDRange(), exec_global, exec_local);
+            queue.enqueueNDRangeKernel(kernel, cl::NDRange(), exec_global, exec_local);
+            queue.finish();
 
             return Status::Ok;
         }

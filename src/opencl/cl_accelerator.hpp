@@ -46,11 +46,12 @@
 #define CL_HPP_TARGET_OPENCL_VERSION  120
 #include <CL/opencl.hpp>
 
-#define VENDOR_CODE_NVIDIA   "nvidia"
-#define VENDOR_CODE_INTEL    "intel"
-#define VENDOR_CODE_AMD      "amd"
-#define VENDOR_CODE_IMG      "img"
-#define VENDOR_CODE_POCL_CPU "pocl_cpu"
+#define VENDOR_CODE_NVIDIA     "nvidia"
+#define VENDOR_CODE_INTEL      "intel"
+#define VENDOR_CODE_AMD        "amd"
+#define VENDOR_CODE_IMG        "img"
+#define VENDOR_CODE_POCL_CPU   "pocl_cpu"
+#define VENDOR_CODE_VORTEX_GPU "vortex_gpu"
 
 namespace spla {
 
@@ -99,6 +100,7 @@ namespace spla {
         [[nodiscard]] bool               is_amd() const { return m_is_amd; }
         [[nodiscard]] bool               is_intel() const { return m_is_intel; }
         [[nodiscard]] bool               is_img() const { return m_is_img; }
+        [[nodiscard]] bool               is_vortex() const { return m_is_vortex; }
 
     private:
         cl::Platform                          m_platform;
@@ -128,6 +130,7 @@ namespace spla {
         bool        m_is_amd           = false;
         bool        m_is_intel         = false;
         bool        m_is_img           = false;
+        bool        m_is_vortex        = false;
 
         ankerl::svector<cl::CommandQueue, 2> m_queues;
     };

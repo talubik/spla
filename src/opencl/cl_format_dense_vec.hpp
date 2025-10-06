@@ -44,9 +44,9 @@ namespace spla {
 
     template<typename T>
     void cl_dense_vec_resize(const std::size_t n_rows,
-                             CLDenseVec<T>&    storage) {
+                             CLDenseVec<T>&    storage,
+                             cl_mem_flags      flags = CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS) {
         const std::size_t buffer_size = n_rows * sizeof(T);
-        const auto        flags       = CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR;
 
         cl::Buffer buffer(get_acc_cl()->get_context(), flags, buffer_size);
         storage.Ax = std::move(buffer);
@@ -62,11 +62,11 @@ namespace spla {
     template<typename T>
     void cl_dense_vec_init(const std::size_t n_rows,
                            const T*          values,
-                           CLDenseVec<T>&    storage) {
+                           CLDenseVec<T>&    storage,
+                           cl_mem_flags      flags = CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR) {
         assert(values);
 
         const std::size_t buffer_size = n_rows * sizeof(T);
-        const auto        flags       = CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR | CL_MEM_COPY_HOST_PTR;
 
         cl::Buffer buffer(get_acc_cl()->get_context(), flags, buffer_size, (void*) values);
         storage.Ax = std::move(buffer);
@@ -77,11 +77,17 @@ namespace spla {
                            T*                values,
                            CLDenseVec<T>&    storage,
                            cl::CommandQueue& queue,
-                           cl_mem_flags      staging_flags =  CL_MEM_ALLOC_HOST_PTR,
+                           cl_mem_flags      staging_flags = CL_MEM_READ_ONLY | CL_MEM_HOST_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
                            bool              blocking      = true) {
         const std::size_t buffer_size = n_rows * sizeof(T);
-    
-        queue.enqueueReadBuffer(storage.Ax, blocking, 0, buffer_size, values);
+        if (staging_flags) {
+            cl::Buffer staging(get_acc_cl()->get_context(), staging_flags, buffer_size);
+
+            queue.enqueueCopyBuffer(storage.Ax, staging, 0, 0, buffer_size);
+            queue.enqueueReadBuffer(staging, blocking, 0, buffer_size, values);
+        } else {
+            queue.enqueueReadBuffer(storage.Ax, blocking, 0, buffer_size, values);
+        }
     }
 
     template<typename T>

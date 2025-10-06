@@ -5,9 +5,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--vortex-dir", help="path to vortex directory")
     parser.add_argument("--driver", help="vortex driver")
-    parser.add_argument("--warps", help="count of warps")
+    parser.add_argument("--warps", help="count of warps", type=int, default=4)
     parser.add_argument("--cores", help="count of cores")
-    parser.add_argument("--threads", help="count of threads")
+    parser.add_argument("--threads", help="count of threads", type=int, default=4)
     parser.add_argument("--clusters", help="count of clusters")
     """
     --app=*)    APP=${i#*=} ;;

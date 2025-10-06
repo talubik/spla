@@ -110,14 +110,10 @@ namespace spla {
         m_is_amd    = false;
         m_is_intel  = false;
         m_is_img    = false;
+        m_is_vortex = false;
 
         auto dev_type = m_device.getInfo<CL_DEVICE_TYPE>();
-        if (m_vendor_id == 0 && dev_type == CL_DEVICE_TYPE_GPU){
-            m_vendor_code = VENDOR_CODE_POCL_CPU;
-            m_default_wgs = 16;
-            m_wave_size   = 4;
-            m_is_pocl     = true;
-        }
+
         if (m_vendor_id == 0x10006 &&
             dev_type == CL_DEVICE_TYPE_CPU) {
             m_vendor_code = VENDOR_CODE_POCL_CPU;
@@ -161,11 +157,20 @@ namespace spla {
             m_default_wgs = 32;
             m_wave_size   = 32;
             m_is_img      = true;
+
+        } else if (m_vendor_name.find("Vortex") != std::string::npos ||
+                   m_vendor_name.find("vortex") != std::string::npos ||
+                   m_vendor_name.find("VORTEX") != std::string::npos ||
+                   m_vendor_id == 0) {
+            m_vendor_code = VENDOR_CODE_VORTEX_GPU;
+            m_default_wgs = 16;
+            m_wave_size   = 4;
+            m_is_vortex   = true;
         }
-        
+
         if (m_vendor_code.empty()) {
             LOG_MSG(Status::Error, "failed to match one of the pre-defined vendors");
-            
+
             m_default_wgs = 64;
             m_wave_size   = 8;
         }
@@ -179,7 +184,7 @@ namespace spla {
              << " wave:" << m_wave_size
              << " mwgs:" << m_max_wgs
              << " ext: " << ext;
-            
+
 
         m_description = desc.str();
 
