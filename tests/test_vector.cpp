@@ -283,7 +283,7 @@ TEST(vector, eadd_fdb_min) {
     }
 }
 
-/*TEST(vector, eadd_fdb_custom) {
+TEST(vector, eadd_fdb_custom) {
     const spla::uint N = 10000;
     auto             v = spla::Vector::make(N, spla::FLOAT);
     auto             u = spla::Vector::make(N, spla::FLOAT);
@@ -313,7 +313,7 @@ TEST(vector, eadd_fdb_min) {
         float expected = ref(float(i), float(N) - float(i) * float(i));
         EXPECT_TRUE(std::fabs(actual - expected) <= error);
     }
-}*/
+}
 
 TEST(vector, assign_plus) {
     const spla::uint N    = 20;

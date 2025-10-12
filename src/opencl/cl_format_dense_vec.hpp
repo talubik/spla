@@ -95,8 +95,9 @@ namespace spla {
                              const T              fill_value,
                              const CLDenseVec<T>& in,
                              CLCooVec<T>&         out,
-                             cl::CommandQueue&    queue) {
-
+                             cl::CommandQueue&    queue,
+                             cl_mem_flags         host_no_access_flag = CL_MEM_HOST_NO_ACCESS) {
+        //TODO: change flags and buffer copying
         CLProgramBuilder builder;
         builder.set_name("vector_format")
                 .add_type("TYPE", get_ttype<T>().template as<Type>())
@@ -106,8 +107,8 @@ namespace spla {
         auto* acc = get_acc_cl();
 
         CLCounterWrapper cl_count;
-        cl::Buffer       temp_Ri(acc->get_context(), CL_MEM_WRITE_ONLY | CL_MEM_HOST_NO_ACCESS, n_rows * sizeof(uint));
-        cl::Buffer       temp_Rx(acc->get_context(), CL_MEM_WRITE_ONLY | CL_MEM_HOST_NO_ACCESS, n_rows * sizeof(T));
+        cl::Buffer       temp_Ri(acc->get_context(), CL_MEM_WRITE_ONLY | host_no_access_flag, n_rows * sizeof(uint));
+        cl::Buffer       temp_Rx(acc->get_context(), CL_MEM_WRITE_ONLY | host_no_access_flag, n_rows * sizeof(T));
 
         cl_count.set(queue, 0);
 
@@ -138,11 +139,12 @@ namespace spla {
         }
 
         out.values = count;
-        out.Ai     = cl::Buffer(acc->get_context(), CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, count * sizeof(uint));
-        out.Ax     = cl::Buffer(acc->get_context(), CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, count * sizeof(T));
-
-        queue.enqueueCopyBuffer(temp_Ri, out.Ai, 0, 0, count * sizeof(uint));
-        queue.enqueueCopyBuffer(temp_Rx, out.Ax, 0, 0, count * sizeof(T));
+        out.Ai     = cl::Buffer(acc->get_context(), CL_MEM_READ_WRITE | host_no_access_flag, count * sizeof(uint));
+        out.Ax     = cl::Buffer(acc->get_context(), CL_MEM_READ_WRITE | host_no_access_flag, count * sizeof(T));
+        if (host_no_access_flag) {
+            queue.enqueueCopyBuffer(temp_Ri, out.Ai, 0, 0, count * sizeof(uint));
+            queue.enqueueCopyBuffer(temp_Rx, out.Ax, 0, 0, count * sizeof(T));
+        }
         CL_FINISH(queue);
     }
 

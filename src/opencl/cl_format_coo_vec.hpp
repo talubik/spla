@@ -45,7 +45,8 @@ namespace spla {
     void cl_coo_vec_init(const std::size_t n_values,
                          const uint*       Ai,
                          const T*          Ax,
-                         CLCooVec<T>&      storage) {
+                         CLCooVec<T>&      storage,
+                         cl_mem_flags      flags = CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR) {
         if (n_values == 0) {
             LOG_MSG(Status::Ok, "nothing to do");
 
@@ -57,7 +58,6 @@ namespace spla {
 
         const std::size_t buffer_size_Ai = n_values * sizeof(uint);
         const std::size_t buffer_size_Ax = n_values * sizeof(T);
-        const auto        flags          = CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR;
 
         cl::Buffer buffer_Ai(get_acc_cl()->get_context(), flags, buffer_size_Ai, (void*) Ai);
         cl::Buffer buffer_Ax(get_acc_cl()->get_context(), flags, buffer_size_Ax, (void*) Ax);
@@ -70,7 +70,8 @@ namespace spla {
 
     template<typename T>
     void cl_coo_vec_resize(const std::size_t n_values,
-                           CLCooVec<T>&      storage) {
+                           CLCooVec<T>&      storage,
+                           cl_mem_flags      flags = CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS) {
         if (n_values == 0) {
             LOG_MSG(Status::Ok, "nothing to do");
 
@@ -82,7 +83,6 @@ namespace spla {
 
         const std::size_t buffer_size_Ai = n_values * sizeof(uint);
         const std::size_t buffer_size_Ax = n_values * sizeof(T);
-        const auto        flags          = CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS;
 
         cl::Buffer buffer_Ai(get_acc_cl()->get_context(), flags, buffer_size_Ai);
         cl::Buffer buffer_Ax(get_acc_cl()->get_context(), flags, buffer_size_Ax);
@@ -114,14 +114,17 @@ namespace spla {
 
         const std::size_t buffer_size_Ai = n_values * sizeof(uint);
         const std::size_t buffer_size_Ax = n_values * sizeof(T);
-
-        cl::Buffer staging_Ai(get_acc_cl()->get_context(), staging_flags, buffer_size_Ai);
-        cl::Buffer staging_Ax(get_acc_cl()->get_context(), staging_flags, buffer_size_Ax);
-
-        queue.enqueueCopyBuffer(storage.Ai, staging_Ai, 0, 0, buffer_size_Ai);
-        queue.enqueueCopyBuffer(storage.Ax, staging_Ax, 0, 0, buffer_size_Ax);
-        queue.enqueueReadBuffer(staging_Ai, blocking, 0, buffer_size_Ai, Ai);
-        queue.enqueueReadBuffer(staging_Ax, blocking, 0, buffer_size_Ax, Ax);
+        if (staging_flags) {
+            cl::Buffer staging_Ai(get_acc_cl()->get_context(), staging_flags, buffer_size_Ai);
+            cl::Buffer staging_Ax(get_acc_cl()->get_context(), staging_flags, buffer_size_Ax);  
+            queue.enqueueCopyBuffer(storage.Ai, staging_Ai, 0, 0, buffer_size_Ai);
+            queue.enqueueCopyBuffer(storage.Ax, staging_Ax, 0, 0, buffer_size_Ax);
+            queue.enqueueReadBuffer(staging_Ai, blocking, 0, buffer_size_Ai, Ai);
+            queue.enqueueReadBuffer(staging_Ax, blocking, 0, buffer_size_Ax, Ax);
+            return;
+        }
+        queue.enqueueReadBuffer(storage.Ai, blocking, 0, buffer_size_Ai, Ai);
+        queue.enqueueReadBuffer(storage.Ax, blocking, 0, buffer_size_Ax, Ax);
     }
 
     template<typename T>

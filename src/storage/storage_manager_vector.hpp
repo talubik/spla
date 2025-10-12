@@ -106,12 +106,12 @@ namespace spla {
             s.get_ref(FormatVector::AccDense) = make_ref<CLDenseVec<T>>();
             auto* cl_dense                    = s.template get<CLDenseVec<T>>();
             auto* cl_acc                      = get_acc_cl();
-            if (cl_acc->is_vortex()) {
+            if (!cl_acc->supports_copyBuffer()) {
                 cl_dense_vec_resize(s.get_n_rows(), *cl_dense,
-                                  CL_MEM_READ_WRITE);
-            } else {
-                cl_dense_vec_resize(s.get_n_rows(), *cl_dense);
+                                    CL_MEM_READ_WRITE);
+                return;
             }
+            cl_dense_vec_resize(s.get_n_rows(), *cl_dense);
         });
 
         manager.register_validator(FormatVector::AccCoo, [](Storage& s) {
@@ -127,7 +127,7 @@ namespace spla {
             auto* cpu_dense = s.template get<CpuDenseVec<T>>();
             auto* cl_dense  = s.template get<CLDenseVec<T>>();
             auto* cl_acc    = get_acc_cl();
-            if (cl_acc->is_vortex()) {
+            if (!cl_acc->supports_copyBuffer()) {
                 cl_dense_vec_init(s.get_n_rows(), cpu_dense->Ax.data(), *cl_dense,
                                   CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR);
             } else {
@@ -138,7 +138,7 @@ namespace spla {
             auto* cl_acc    = get_acc_cl();
             auto* cl_dense  = s.template get<CLDenseVec<T>>();
             auto* cpu_dense = s.template get<CpuDenseVec<T>>();
-            if (cl_acc->is_vortex()) {
+            if (!cl_acc->supports_copyBuffer()) {
                 cl_dense_vec_read(s.get_n_rows(), cpu_dense->Ax.data(), *cl_dense, cl_acc->get_queue_default(),
                                   0);
             } else if (!cl_acc->is_img()) {
@@ -154,6 +154,11 @@ namespace spla {
         manager.register_converter(FormatVector::CpuCoo, FormatVector::AccCoo, [](Storage& s) {
             auto* cpu_coo = s.template get<CpuCooVec<T>>();
             auto* cl_coo  = s.template get<CLCooVec<T>>();
+            auto* cl_acc  = get_acc_cl();
+            if (!cl_acc->supports_copyBuffer()) {
+                cl_coo_vec_init(cpu_coo->values, cpu_coo->Ai.data(), cpu_coo->Ax.data(), *cl_coo, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR);
+                return;
+            }
             cl_coo_vec_init(cpu_coo->values, cpu_coo->Ai.data(), cpu_coo->Ax.data(), *cl_coo);
         });
         manager.register_converter(FormatVector::AccCoo, FormatVector::CpuCoo, [](Storage& s) {
@@ -161,7 +166,9 @@ namespace spla {
             auto* cl_coo  = s.template get<CLCooVec<T>>();
             auto* cpu_coo = s.template get<CpuCooVec<T>>();
             cpu_coo_vec_resize(cl_coo->values, *cpu_coo);
-            if (!cl_acc->is_img()) {
+            if (!cl_acc->supports_copyBuffer()) {
+                cl_coo_vec_read(cl_coo->values, cpu_coo->Ai.data(), cpu_coo->Ax.data(), *cl_coo, cl_acc->get_queue_default(), 0);
+            } else if (!cl_acc->is_img()) {
                 cl_coo_vec_read(cl_coo->values, cpu_coo->Ai.data(), cpu_coo->Ax.data(), *cl_coo, cl_acc->get_queue_default());
             } else {
                 // On Imagination Technologies devices copying data to staging buffer created with CL_MEM_READ_ONLY flag does not affect this buffer.
@@ -181,7 +188,11 @@ namespace spla {
             auto* cl_acc   = get_acc_cl();
             auto* cl_dense = s.template get<CLDenseVec<T>>();
             auto* cl_coo   = s.template get<CLCooVec<T>>();
-            cl_dense_vec_to_coo(s.get_n_rows(), s.get_fill_value(), *cl_dense, *cl_coo, cl_acc->get_queue_default());
+            if (!cl_acc->supports_copyBuffer()) {
+                cl_dense_vec_to_coo(s.get_n_rows(), s.get_fill_value(), *cl_dense, *cl_coo, cl_acc->get_queue_default(), 0);
+            } else {
+                cl_dense_vec_to_coo(s.get_n_rows(), s.get_fill_value(), *cl_dense, *cl_coo, cl_acc->get_queue_default());
+            }
         });
 #endif
     }

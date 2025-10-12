@@ -70,7 +70,7 @@ namespace spla {
         if (size <= local_size) {
             const uint wave_size = acc->get_wave_size();
             const uint n_threads = align(std::min(size, max_treads_per_block), wave_size);
-
+            //error with local memory in vortex
             cl::NDRange global(n_threads);
             cl::NDRange local(n_threads);
             queue.enqueueNDRangeKernel(kernel_local, cl::NDRange(), global, local);

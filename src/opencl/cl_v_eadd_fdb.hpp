@@ -100,10 +100,13 @@ namespace spla {
             const uint n = p_cl_v->values;
 
             if (n == 0) return Status::Ok;
-
+            auto flags = CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS;
+            if (!p_cl_acc->supports_copyBuffer()) {
+                flags = CL_MEM_READ_WRITE;
+            }
             CLCounterWrapper cl_fdb_size;
-            cl::Buffer       cl_fdb_i(p_cl_acc->get_context(), CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, sizeof(uint) * n);
-            cl::Buffer       cl_fdb_x(p_cl_acc->get_context(), CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, sizeof(T) * n);
+            cl::Buffer       cl_fdb_i(p_cl_acc->get_context(), flags, sizeof(uint) * n);
+            cl::Buffer       cl_fdb_x(p_cl_acc->get_context(), flags, sizeof(T) * n);
 
             cl_fdb_size.set(queue, 0);
 

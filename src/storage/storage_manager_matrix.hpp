@@ -138,6 +138,11 @@ namespace spla {
         manager.register_converter(FormatMatrix::CpuCsr, FormatMatrix::AccCsr, [](Storage& s) {
             auto* cpu_csr = s.template get<CpuCsr<T>>();
             auto* cl_csr  = s.template get<CLCsr<T>>();
+            auto* cl_acc  = get_acc_cl();
+            if (!cl_acc->supports_copyBuffer()) {
+                cl_csr_init(s.get_n_rows(), cpu_csr->values, cpu_csr->Ap.data(), cpu_csr->Aj.data(), cpu_csr->Ax.data(), *cl_csr, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR);
+                return;
+            }
             cl_csr_init(s.get_n_rows(), cpu_csr->values, cpu_csr->Ap.data(), cpu_csr->Aj.data(), cpu_csr->Ax.data(), *cl_csr);
         });
 
@@ -146,7 +151,9 @@ namespace spla {
             auto* cl_csr  = s.template get<CLCsr<T>>();
             auto* cpu_csr = s.template get<CpuCsr<T>>();
             cpu_csr_resize(s.get_n_rows(), cl_csr->values, *cpu_csr);
-            if (!cl_acc->is_img()) {
+            if (!cl_acc->supports_copyBuffer()) {
+                cl_csr_read(s.get_n_rows(), cl_csr->values, cpu_csr->Ap.data(), cpu_csr->Aj.data(), cpu_csr->Ax.data(), *cl_csr, cl_acc->get_queue_default(), 0);
+            } else if (!cl_acc->is_img()) {
                 cl_csr_read(s.get_n_rows(), cl_csr->values, cpu_csr->Ap.data(), cpu_csr->Aj.data(), cpu_csr->Ax.data(), *cl_csr, cl_acc->get_queue_default());
             } else {
                 // On Imagination Technologies devices copying data to staging buffer created with CL_MEM_READ_ONLY flag does not affect this buffer.

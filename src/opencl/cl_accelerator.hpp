@@ -102,6 +102,8 @@ namespace spla {
         [[nodiscard]] bool               is_img() const { return m_is_img; }
         [[nodiscard]] bool               is_vortex() const { return m_is_vortex; }
 
+        [[nodiscard]] bool supports_copyBuffer() const { return m_supports_copyBuffer; }
+
     private:
         cl::Platform                          m_platform;
         cl::Device                            m_device;
@@ -131,6 +133,9 @@ namespace spla {
         bool        m_is_intel         = false;
         bool        m_is_img           = false;
         bool        m_is_vortex        = false;
+
+        // Operations support
+        bool m_supports_copyBuffer = true;
 
         ankerl::svector<cl::CommandQueue, 2> m_queues;
     };

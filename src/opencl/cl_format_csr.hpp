@@ -38,14 +38,14 @@ namespace spla {
      */
 
     template<typename T>
-    void cl_csr_init(std::size_t n_rows,
-                     std::size_t n_values,
-                     const uint* Ap,
-                     const uint* Aj,
-                     const T*    Ax,
-                     CLCsr<T>&   storage) {
+    void cl_csr_init(std::size_t  n_rows,
+                     std::size_t  n_values,
+                     const uint*  Ap,
+                     const uint*  Aj,
+                     const T*     Ax,
+                     CLCsr<T>&    storage,
+                     cl_mem_flags flags = CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR) {
         auto&      ctx   = get_acc_cl()->get_context();
-        const auto flags = CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR;
 
         cl::Buffer cl_Ap(ctx, flags, (n_rows + 1) * sizeof(uint), (void*) Ap);
         cl::Buffer cl_Aj(ctx, flags, n_values * sizeof(uint), (void*) Aj);
@@ -59,11 +59,11 @@ namespace spla {
     }
 
     template<typename T>
-    void cl_csr_resize(std::size_t n_rows,
-                       std::size_t n_values,
-                       CLCsr<T>&   storage) {
+    void cl_csr_resize(std::size_t  n_rows,
+                       std::size_t  n_values,
+                       CLCsr<T>&    storage,
+                       cl_mem_flags flags = CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS) {
         auto&      ctx   = get_acc_cl()->get_context();
-        const auto flags = CL_MEM_READ_WRITE;
 
         cl::Buffer cl_Ap(ctx, flags, (n_rows + 1) * sizeof(uint));
         cl::Buffer cl_Aj(ctx, flags, n_values * sizeof(uint));
@@ -89,10 +89,23 @@ namespace spla {
         const std::size_t buffer_size_Ap = (n_rows + 1) * sizeof(uint);
         const std::size_t buffer_size_Aj = n_values * sizeof(uint);
         const std::size_t buffer_size_Ax = n_values * sizeof(T);
+        if (staging_flags) {
+            cl::Buffer staging_Ap(get_acc_cl()->get_context(), staging_flags, buffer_size_Ap);
+            cl::Buffer staging_Aj(get_acc_cl()->get_context(), staging_flags, buffer_size_Aj);
+            cl::Buffer staging_Ax(get_acc_cl()->get_context(), staging_flags, buffer_size_Ax);
 
-        queue.enqueueReadBuffer(storage.Ap, false, 0, buffer_size_Ap, Ap);
-        queue.enqueueReadBuffer(storage.Aj, false, 0, buffer_size_Aj, Aj);
-        queue.enqueueReadBuffer(storage.Ax, blocking, 0, buffer_size_Ax, Ax);
+            queue.enqueueCopyBuffer(storage.Ap, staging_Ap, 0, 0, buffer_size_Ap);
+            queue.enqueueCopyBuffer(storage.Aj, staging_Aj, 0, 0, buffer_size_Aj);
+            queue.enqueueCopyBuffer(storage.Ax, staging_Ax, 0, 0, buffer_size_Ax);
+
+            queue.enqueueReadBuffer(staging_Ap, false, 0, buffer_size_Ap, Ap);
+            queue.enqueueReadBuffer(staging_Aj, false, 0, buffer_size_Aj, Aj);
+            queue.enqueueReadBuffer(staging_Ax, blocking, 0, buffer_size_Ax, Ax);
+        } else {
+            queue.enqueueReadBuffer(storage.Ap, false, 0, buffer_size_Ap, Ap);
+            queue.enqueueReadBuffer(storage.Aj, false, 0, buffer_size_Aj, Aj);
+            queue.enqueueReadBuffer(storage.Ax, blocking, 0, buffer_size_Ax, Ax);
+        }
     }
 
     /**

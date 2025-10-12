@@ -166,6 +166,7 @@ namespace spla {
             m_default_wgs = 16;
             m_wave_size   = 4;
             m_is_vortex   = true;
+            m_supports_copyBuffer = false;
         }
 
         if (m_vendor_code.empty()) {
