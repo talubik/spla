@@ -39,7 +39,7 @@ jobs:
           python3 ./build_vortex.py
       - name: Build spla
         run: |
-          python3 ./build.py --build-dir=${{ env.build_dir }} --vortex=YES --vortex-tooldir=./vortex-tools --vortex-dir=./deps/vortex
+          python3 ./build.py --build-dir=${{ env.build_dir }} --vortex=YES --vortex-tooldir=${{ github.workspace }}/vortex-tools --vortex-dir=${{ github.workspace }}/deps/vortex
       - name: Run tests on vortex simx
         run: |
           source ./deps/vortex/build/ci/toolchain_env.sh
