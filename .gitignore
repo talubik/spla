@@ -12,3 +12,4 @@ registry.txt
 
 # Python cache files
 /**/__pycache__
+/**/votex_tools

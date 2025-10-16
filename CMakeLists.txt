@@ -237,37 +237,12 @@ if (SPLA_BUILD_TESTS)
 endif ()
 
 if(SPLA_BUILD_FOR_VORTEX)
-    message(STATUS "Add Vortex OpenCL runtime support")
-    set(SPLA_LIB_TYPE STATIC)
-    include(ExternalProject)
-    set(VORTEX_SOURCE_DIR ${CMAKE_SOURCE_DIR}/deps/vortex)
-    set(SPLA_POCL_SOURCE_DIR ${CMAKE_SOURCE_DIR}/deps/pocl)
-    set(VORTEX_TOOL_DIR ${CMAKE_BINARY_DIR}/vortex-tools)
-    set(VORTEX_BUILD_DIR ${VORTEX_SOURCE_DIR}/build)
-    set(VORTEX_LIBRARY ${VORTEX_BUILD_DIR}/kernel/libvortex.a)
-    set(POCL_BUILD_SCRIPT ${CMAKE_BINARY_DIR}/vortex/build_pocl.sh)
-    configure_file(${VORTEX_SOURCE_DIR}/ci/build_pocl.sh.in ${POCL_BUILD_SCRIPT} @ONLY
-    FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-    ExternalProject_Add(
-        vortex_project
-        PREFIX            ${CMAKE_BINARY_DIR}/vortex
-        SOURCE_DIR        ${VORTEX_SOURCE_DIR}
-        BINARY_DIR        ${VORTEX_BUILD_DIR}
-
-        CONFIGURE_COMMAND  /bin/bash -c "${VORTEX_SOURCE_DIR}/configure --xlen=64 --tooldir=${VORTEX_TOOL_DIR} &&
-                            TOOLDIR=${VORTEX_TOOL_DIR} ${VORTEX_BUILD_DIR}/ci/toolchain_install.sh --all"
-
-        BUILD_COMMAND     /bin/bash -c "source ${VORTEX_BUILD_DIR}/ci/toolchain_env.sh && make -s"
-
-        INSTALL_COMMAND   /bin/bash -c "${POCL_BUILD_SCRIPT}"
-
-        BUILD_BYPRODUCTS  ${VORTEX_LIBRARY}
-        LOG_CONFIGURE 1
-        LOG_BUILD 1
-        LOG_INSTALL 1
-    )
-    set(SPLA_VORTEX_DIRECTORY ${VORTEX_BUILD_DIR})
-    set(SPLA_VORTEX_TOOL_DIRECTORY ${VORTEX_TOOL_DIR})
+    if(NOT DEFINED SPLA_VORTEX_TOOL_DIRECTORY)
+        message(FATAL_ERROR "For Vortex build you must specify Vortex toolchain directory by -DSPLA_VORTEX_TOOL_DIRECTORY=...</path/to/vortex-tools>")
+    endif()
+    if(NOT DEFINED SPLA_VORTEX_DIRECTORY)
+        message(FATAL_ERROR "For Vortex build you must specify Vortex source directory by -DSPLA_VORTEX_DIRECTORY=...</path/to/vortex>")
+    endif()
 endif()
     
 ######################################################################
@@ -418,7 +393,6 @@ target_link_libraries(spla PRIVATE svector)
 
 if (SPLA_BUILD_OPENCL)
     if(SPLA_BUILD_FOR_VORTEX)
-        add_dependencies(spla vortex_project)
         target_link_options(spla PUBLIC -Wl,-rpath=${SPLA_VORTEX_TOOL_DIRECTORY}/llvm-vortex/lib)
         target_link_libraries(spla PUBLIC
             -L${SPLA_VORTEX_DIRECTORY}/runtime
