@@ -42,6 +42,6 @@ jobs:
           python3 ./build.py --build-dir=${{ env.build_dir }} --vortex=YES --vortex-tooldir=./vortex-tools --vortex-dir=./deps/vortex
       - name: Run tests on vortex simx
         run: |
-          soure ./deps/vortex/build/ci/toolchain_env.sh
+          source ./deps/vortex/build/ci/toolchain_env.sh
           eval "$(python3 configure_vortex.py --vortex-dir=./deps/vortex --driver=simx )"
           python3 ./run_tests.py --build-dir=${{ env.build_dir }}
