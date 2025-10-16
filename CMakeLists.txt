@@ -254,8 +254,8 @@ if(SPLA_BUILD_FOR_VORTEX)
         SOURCE_DIR        ${VORTEX_SOURCE_DIR}
         BINARY_DIR        ${VORTEX_BUILD_DIR}
 
-        CONFIGURE_COMMAND  /bin/bash -c "${VORTEX_SOURCE_DIR}/configure --xlen=64 --tooldir=${VORTEX_TOOL_DIR} "
-                            #TOOLDIR=${VORTEX_TOOL_DIR} ${VORTEX_BUILD_DIR}/ci/toolchain_install.sh --all"
+        CONFIGURE_COMMAND  /bin/bash -c "${VORTEX_SOURCE_DIR}/configure --xlen=64 --tooldir=${VORTEX_TOOL_DIR} &&
+                            TOOLDIR=${VORTEX_TOOL_DIR} ${VORTEX_BUILD_DIR}/ci/toolchain_install.sh --all"
 
         BUILD_COMMAND     /bin/bash -c "source ${VORTEX_BUILD_DIR}/ci/toolchain_env.sh && make -s"
 
