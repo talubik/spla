@@ -201,18 +201,20 @@ if (SPLA_BUILD_OPENCL)
         set(OPENCL_ICD_LOADER_PIC ON)
         set(OPENCL_ICD_LOADER_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
         set(OPENCL_ICD_LOADER_BUILD_TESTING OFF CACHE BOOL "" FORCE)
-        #add_subdirectory(deps/opencl-icd-loader)
+        if(!SPLA_BUILD_FOR_VORTEX)
+            add_subdirectory(deps/opencl-icd-loader)
+        endif()
     endif ()
-
 
     message(STATUS "Add Khronos OpenCL HPP bindings")
     add_library(HeadersCpp INTERFACE)
     add_library(OpenCL::HeadersCpp ALIAS HeadersCpp)
-    ##target_include_directories(HeadersCpp INTERFACE deps/opencl-headers-hpp/include)
-    target_include_directories(HeadersCpp INTERFACE ${SPLA_VORTEX_TOOL_DIRECTORY}/pocl/include)
-    target_include_directories(HeadersCpp INTERFACE ${SPLA_VORTEX_TOOL_DIRECTORY}/pocl/include/hpp)
-    
-    
+    if(SPLA_BUILD_FOR_VORTEX)
+        target_include_directories(HeadersCpp INTERFACE ${SPLA_VORTEX_TOOL_DIRECTORY}/pocl/include)
+        target_include_directories(HeadersCpp INTERFACE ${SPLA_VORTEX_TOOL_DIRECTORY}/pocl/include/hpp)
+    else()
+        target_include_directories(HeadersCpp INTERFACE deps/opencl-headers-hpp/include)
+    endif()
 endif ()
 
 if (SPLA_BUILD_EXAMPLES)
@@ -235,14 +237,37 @@ if (SPLA_BUILD_TESTS)
 endif ()
 
 if(SPLA_BUILD_FOR_VORTEX)
-    if (NOT SPLA_VORTEX_DIRECTORY)
-        message(FATAL_ERROR "SPLA_VORTEX_DIRECTORY must be set to Vortex installation directory")
-    endif ()
-    if (NOT SPLA_VORTEX_TOOL_DIRECTORY)
-        message(FATAL_ERROR "SPLA_VORTEX_TOOL_DIRECTORY must be set to Vortex tools directory")
-    endif ()
     message(STATUS "Add Vortex OpenCL runtime support")
     set(SPLA_LIB_TYPE STATIC)
+    include(ExternalProject)
+    set(VORTEX_SOURCE_DIR ${CMAKE_SOURCE_DIR}/deps/vortex)
+    set(SPLA_POCL_SOURCE_DIR ${CMAKE_SOURCE_DIR}/deps/pocl)
+    set(VORTEX_TOOL_DIR ${CMAKE_BINARY_DIR}/vortex-tools)
+    set(VORTEX_BUILD_DIR ${VORTEX_SOURCE_DIR}/build)
+    set(VORTEX_LIBRARY ${VORTEX_BUILD_DIR}/kernel/libvortex.a)
+    set(POCL_BUILD_SCRIPT ${CMAKE_BINARY_DIR}/vortex/build_pocl.sh)
+    configure_file(${VORTEX_SOURCE_DIR}/ci/build_pocl.sh.in ${POCL_BUILD_SCRIPT} @ONLY
+    FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+    ExternalProject_Add(
+        vortex_project
+        PREFIX            ${CMAKE_BINARY_DIR}/vortex
+        SOURCE_DIR        ${VORTEX_SOURCE_DIR}
+        BINARY_DIR        ${VORTEX_BUILD_DIR}
+
+        CONFIGURE_COMMAND  /bin/bash -c "${VORTEX_SOURCE_DIR}/configure --xlen=64 --tooldir=${VORTEX_TOOL_DIR} "
+                            #TOOLDIR=${VORTEX_TOOL_DIR} ${VORTEX_BUILD_DIR}/ci/toolchain_install.sh --all"
+
+        BUILD_COMMAND     /bin/bash -c "source ${VORTEX_BUILD_DIR}/ci/toolchain_env.sh && make -s"
+
+        INSTALL_COMMAND   /bin/bash -c "${POCL_BUILD_SCRIPT}"
+
+        BUILD_BYPRODUCTS  ${VORTEX_LIBRARY}
+        LOG_CONFIGURE 1
+        LOG_BUILD 1
+        LOG_INSTALL 1
+    )
+    set(SPLA_VORTEX_DIRECTORY ${VORTEX_BUILD_DIR})
+    set(SPLA_VORTEX_TOOL_DIRECTORY ${VORTEX_TOOL_DIR})
 endif()
     
 ######################################################################
@@ -393,9 +418,10 @@ target_link_libraries(spla PRIVATE svector)
 
 if (SPLA_BUILD_OPENCL)
     if(SPLA_BUILD_FOR_VORTEX)
+        add_dependencies(spla vortex_project)
         target_link_options(spla PUBLIC -Wl,-rpath=${SPLA_VORTEX_TOOL_DIRECTORY}/llvm-vortex/lib)
         target_link_libraries(spla PUBLIC
-            -L${SPLA_VORTEX_DIRECTORY}/build/runtime
+            -L${SPLA_VORTEX_DIRECTORY}/runtime
             -lvortex
             -L${SPLA_VORTEX_TOOL_DIRECTORY}/pocl/lib
             -lOpenCL

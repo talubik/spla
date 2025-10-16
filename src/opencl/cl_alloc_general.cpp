@@ -30,12 +30,16 @@
 namespace spla {
 
     cl::Buffer CLAllocGeneral::alloc(std::size_t size) {
+        auto* cl_acc = get_acc_cl();
+        if (!cl_acc->supports_copyBuffer()) {
+            return cl::Buffer(get_acc_cl()->get_context(), CL_MEM_READ_WRITE, size);
+        }
         return cl::Buffer(get_acc_cl()->get_context(), CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, size);
     }
     void CLAllocGeneral::alloc_paired(std::size_t size1, std::size_t size2, cl::Buffer& buffer1, cl::Buffer& buffer2) {
         auto* cl_acc = get_acc_cl();
 
-        if (cl_acc->is_nvidia()) {
+        if (cl_acc->is_nvidia() || cl_acc->is_vortex()) {
             buffer1 = alloc(size1);
             buffer2 = alloc(size2);
             return;

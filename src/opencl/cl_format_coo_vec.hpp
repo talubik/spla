@@ -116,7 +116,7 @@ namespace spla {
         const std::size_t buffer_size_Ax = n_values * sizeof(T);
         if (staging_flags) {
             cl::Buffer staging_Ai(get_acc_cl()->get_context(), staging_flags, buffer_size_Ai);
-            cl::Buffer staging_Ax(get_acc_cl()->get_context(), staging_flags, buffer_size_Ax);  
+            cl::Buffer staging_Ax(get_acc_cl()->get_context(), staging_flags, buffer_size_Ax);
             queue.enqueueCopyBuffer(storage.Ai, staging_Ai, 0, 0, buffer_size_Ai);
             queue.enqueueCopyBuffer(storage.Ax, staging_Ax, 0, 0, buffer_size_Ax);
             queue.enqueueReadBuffer(staging_Ai, blocking, 0, buffer_size_Ai, Ai);

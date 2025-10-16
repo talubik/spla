@@ -39,16 +39,20 @@ namespace spla {
         m_fallback_size = arena_size;
         m_arena_size    = arena_size;
         m_alignment     = alignment;
-        m_arena.emplace_back(get_acc_cl()->get_context(), CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, m_arena_size);
+        m_arena.emplace_back(get_acc_cl()->get_context(), CL_MEM_READ_WRITE, m_arena_size);
         LOG_MSG(Status::Ok, "preallocate " << m_arena_size);
     }
 
     cl::Buffer CLAllocLinear::alloc(std::size_t size) {
+
+        if (get_acc_cl()->is_vortex()) {
+            return cl::Buffer(get_acc_cl()->get_context(), CL_MEM_READ_WRITE, size);
+        }
         std::size_t size_aligned = aligns(size, m_alignment);
 
         if (size_aligned >= m_fallback_size) {
             // Fallback in case if too big allocation required
-            return cl::Buffer(get_acc_cl()->get_context(), CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, size);
+            return cl::Buffer(get_acc_cl()->get_context(), CL_MEM_READ_WRITE, size);
         }
         if (size_aligned + m_curr_offset > m_arena_size) {
             // Allocate new page to fit this allocation
@@ -79,7 +83,7 @@ namespace spla {
     void CLAllocLinear::expand() {
         m_curr_offset = 0;
         m_arena_size *= 2;
-        m_arena.emplace_back(get_acc_cl()->get_context(), CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS, m_arena_size);
+        m_arena.emplace_back(get_acc_cl()->get_context(), CL_MEM_READ_WRITE, m_arena_size);
         LOG_MSG(Status::Ok, "expand to " << m_arena_size);
     }
     void CLAllocLinear::shrink() {

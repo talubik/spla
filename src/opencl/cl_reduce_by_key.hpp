@@ -131,8 +131,17 @@ namespace spla {
         cl_exclusive_scan(queue, offsets, size, PLUS_UINT.template cast_safe<TOpBinary<uint, uint, uint>>(), tmp_alloc);
 
         CLCounterWrapper cl_scan_last;
-        queue.enqueueCopyBuffer(offsets, cl_scan_last.buffer(), sizeof(uint) * (size - 1), 0, sizeof(uint));
-        uint scan_last = cl_scan_last.get(queue);
+        uint             scan_last = 0;
+        if (!cl_acc->supports_copyBuffer()) {
+            uint temp_value;
+            queue.enqueueReadBuffer(offsets, CL_TRUE, sizeof(uint) * (size - 1), sizeof(uint), &temp_value);
+            scan_last = temp_value;
+            printf("Value read: %u\n", scan_last);
+        } else {
+            queue.enqueueCopyBuffer(offsets, cl_scan_last.buffer(), sizeof(uint) * (size - 1), 0, sizeof(uint));
+            scan_last = cl_scan_last.get(queue);
+        }
+
 
         reduced_size = scan_last + 1;
         alloc->alloc_paired(sizeof(uint) * reduced_size, sizeof(T) * reduced_size, unique_keys, reduce_values);

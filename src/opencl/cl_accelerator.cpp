@@ -162,11 +162,12 @@ namespace spla {
                    m_vendor_name.find("vortex") != std::string::npos ||
                    m_vendor_name.find("VORTEX") != std::string::npos ||
                    m_vendor_id == 0) {
-            m_vendor_code = VENDOR_CODE_VORTEX_GPU;
-            m_default_wgs = 16;
-            m_wave_size   = 4;
-            m_is_vortex   = true;
+            m_vendor_code         = VENDOR_CODE_VORTEX_GPU;
+            m_default_wgs         = 16;
+            m_wave_size           = 4;
+            m_is_vortex           = true;
             m_supports_copyBuffer = false;
+            m_max_local_mem /= 4;
         }
 
         if (m_vendor_code.empty()) {

@@ -30,16 +30,15 @@ jobs:
         with:
           submodules: true
           fetch-depth: 0
-      - name: Install PoCL
+      - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y pocl-opencl-icd clinfo
-      - name: Show available OpenCL devices
-        run: |
-          clinfo -l
+          sudo ./deps/vortex/ci/install_dependencies.sh
       - name: Build spla
         run: |
-          python3 ./build.py --build-dir=${{ env.build_dir }}
-      - name: Run tests
+          python3 ./build.py --build-dir=${{ env.build_dir }} --vortex=YES
+      - name: Run tests on vortex simx
         run: |
+          soure ./deps/vortex/build/ci/toolchain_env.sh
+          eval "$(python3 configure_vortex.py --vortex-dir=./deps/vortex --driver=simx )"
           python3 ./run_tests.py --build-dir=${{ env.build_dir }}

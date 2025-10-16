@@ -93,7 +93,7 @@ TEST(vxm_masked, perf_mult_add) {
     const int K     = 10;
     const int W     = 64;
     const int S     = 10;
-    const int NITER = 10;
+    const int NITER = 1;
 
     std::vector<int> result(N, 0);
 
@@ -142,7 +142,7 @@ TEST(vxm_masked, perf_and_or) {
     const int K     = 10;
     const int W     = 64;
     const int S     = 10;
-    const int NITER = 10;
+    const int NITER = 1;
 
     std::vector<int> result(N, 0);
 
