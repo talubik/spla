@@ -31,7 +31,7 @@ def main():
 
     
     configure_cmd = (
-        f"{vortex_source_rel_to_build}/configure --xlen=64 --tooldir=/home/shamil/tools && "
+        f"{vortex_source_rel_to_build}/configure --xlen=64 --tooldir={tool_dir} && "
         f"TOOLDIR={tool_dir_rel_to_build} ./ci/toolchain_install.sh --all"
     )
     run_command(configure_cmd, cwd=vortex_build_dir)
