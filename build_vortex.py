@@ -1,7 +1,8 @@
 import subprocess
-import argparse
+import shutil
 import os
 import sys
+
 
 def run_command(command, cwd=None):
     print(f"Running command: {command}")
@@ -19,11 +20,12 @@ def main():
     
     vortex_build_dir = os.path.join(vortex_source_dir, "build")
     tool_dir = os.path.join(project_root, "vortex-tools")
-
+    pocl_tool_path = os.path.join(tool_dir, "pocl")
    
     os.makedirs(vortex_build_dir, exist_ok=True)
     os.makedirs(tool_dir, exist_ok=True)
-
+    if os.path.exists(pocl_tool_path):
+        shutil.rmtree(pocl_tool_path)
     
     vortex_source_rel_to_build = os.path.relpath(vortex_source_dir, vortex_build_dir)
     pocl_source_rel_to_build = os.path.relpath(pocl_source_dir, vortex_build_dir)

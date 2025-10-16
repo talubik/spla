@@ -107,18 +107,10 @@ libc64()
 
 pocl()
 {
-   cd @SPLA_POCL_SOURCE_DIR@
-    mkdir -p build && cd build
-
-    export POCL_PATH=$TOOLDIR/pocl
-    export VORTEX_PREFIX=@VORTEX_SOURCE_DIR@
-    export LLVM_PREFIX=$TOOLDIR/llvm-vortex
-
-    # Запускаем cmake с правильными путями
-    cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$POCL_PATH -DWITH_LLVM_CONFIG=$LLVM_PREFIX/bin/llvm-config -DVORTEX_PREFIX=$VORTEX_PREFIX -DENABLE_VORTEX=ON -DKERNEL_CACHE_DEFAULT=OFF -DENABLE_HOST_CPU_DEVICES=OFF -DENABLE_TESTS=OFF -DENABLE_ICD=OFF ..
-    make -j`nproc`
-    make install
-    cp -r ../include $POCL_PATH
+   wget $REPOSITORY/pocl/$OSVERSION/pocl2.tar.bz2
+    tar -xvf pocl2.tar.bz2
+    mkdir -p $TOOLDIR && rm -rf $TOOLDIR/pocl && mv pocl $TOOLDIR
+    rm -rf pocl2 pocl2.tar.bz2
 }
 
 verilator()
@@ -185,7 +177,8 @@ while [ "$1" != "" ]; do
                 ;;
         --yosys ) yosys
                 ;;
-        --all ) llvm
+        --all ) pocl
+                llvm
                 verilator
                 libcrt32
                 libcrt64

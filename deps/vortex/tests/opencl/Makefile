@@ -22,9 +22,6 @@ all:
 	$(MAKE) -C kmeans
 	$(MAKE) -C blackscholes
 	$(MAKE) -C bfs
-	$(MAKE) -C twokernels
-	$(MAKE) -C copybuf
-	$(MAKE) -C atomics
 
 
 run-simx:
@@ -47,10 +44,6 @@ run-simx:
 	$(MAKE) -C kmeans run-simx
 	$(MAKE) -C blackscholes run-simx
 	$(MAKE) -C bfs run-simx
-	$(MAKE) -C twokernels run-simx
-	$(MAKE) -C copybuf run-simx
-	$(MAKE) -C atomics run-simx
-	$(MAKE) -C localmem run-simx
 
 
 run-rtlsim:
@@ -73,9 +66,6 @@ run-rtlsim:
 	$(MAKE) -C kmeans run-rtlsim
 	$(MAKE) -C blackscholes run-rtlsim
 	$(MAKE) -C bfs run-rtlsim
-	$(MAKE) -C twokernels run-rtlsim
-	$(MAKE) -C copybuf run-rtlsim
-	$(MAKE) -C atomics run-rtlsim
 
 clean:
 	$(MAKE) -C vecadd clean
@@ -98,6 +88,3 @@ clean:
 	$(MAKE) -C kmeans clean
 	$(MAKE) -C blackscholes clean
 	$(MAKE) -C bfs clean
-	$(MAKE) -C copybuf clean
-	$(MAKE) -C twokernels clean
-	$(MAKE) -C atomics clean
