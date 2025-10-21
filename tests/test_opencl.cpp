@@ -60,8 +60,8 @@ TEST(opencl, basic) {
     std::vector<int> vec_b = {0, -1, 2, -3, 4, -5, 6, -7, 8, -9};
     std::vector<int> vec_c(10);
 
-    cl::Buffer a(queue, vec_a.begin(), vec_a.end(), true, false);
-    cl::Buffer b(queue, vec_b.begin(), vec_b.end(), true, false);
+    cl::Buffer a(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int) * vec_a.size(), vec_a.data());
+    cl::Buffer b(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int) * vec_b.size(), vec_b.data());
     cl::Buffer c(context, CL_MEM_READ_WRITE, sizeof(int) * vec_c.size());
 
     std::string kernel_code =
@@ -79,12 +79,18 @@ TEST(opencl, basic) {
     kernel.setArg(2, c);
     kernel.setArg(3, 10);
 
-    cl::NDRange global(32);
-    cl::NDRange local(32);
-    queue.enqueueNDRangeKernel(kernel, cl::NDRange(), global, local);
+    size_t max_wg;
+    device.getInfo(CL_DEVICE_MAX_WORK_GROUP_SIZE, &max_wg);
 
-    cl::copy(queue, c, vec_c.begin(), vec_c.end());
+    size_t local  = std::min((size_t) 32, max_wg);
+    size_t global = ((vec_c.size() + local - 1) / local) * local;
 
+    cl::NDRange global_range(global);
+    cl::NDRange local_range(local);
+    queue.enqueueNDRangeKernel(kernel, cl::NDRange(), global_range, local_range);
+
+    queue.enqueueReadBuffer(c, CL_TRUE, 0, sizeof(int) * vec_c.size(), vec_c.data());
+    queue.finish();
     for (auto value : vec_c)
         std::cout << value << std::endl;
 }
@@ -118,8 +124,8 @@ TEST(opencl, bitonic_sort_local) {
         values[i] = ((N - i) % 2) * 10;
     }
 
-    cl::Buffer buffer_keys(queue, keys.begin(), keys.end(), false, false);
-    cl::Buffer buffer_values(queue, values.begin(), values.end(), false, false);
+    cl::Buffer buffer_keys(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(unsigned int) * keys.size(), keys.data());
+    cl::Buffer buffer_values(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(int) * values.size(), values.data());
 
     std::string kernel_code = source_sort_bitonic;
 
@@ -130,13 +136,16 @@ TEST(opencl, bitonic_sort_local) {
     kernel.setArg(0, buffer_keys);
     kernel.setArg(1, buffer_values);
     kernel.setArg(2, N);
+    size_t max_wg;
+    device.getInfo(CL_DEVICE_MAX_WORK_GROUP_SIZE, &max_wg);
 
-    cl::NDRange global(256);
-    cl::NDRange local(256);
-    queue.enqueueNDRangeKernel(kernel, cl::NDRange(), global, local);
+    cl::NDRange global_range(max_wg);
+    cl::NDRange local_range(max_wg);
 
-    cl::copy(queue, buffer_keys, keys.begin(), keys.end());
-    cl::copy(queue, buffer_values, values.begin(), values.end());
+    queue.enqueueNDRangeKernel(kernel, cl::NDRange(), global_range, local_range);
+
+    queue.enqueueReadBuffer(buffer_keys, CL_TRUE, 0, sizeof(unsigned int) * keys.size(), keys.data());
+    queue.enqueueReadBuffer(buffer_values, CL_TRUE, 0, sizeof(int) * values.size(), values.data());
 
     for (int i = 0; i < N; ++i) {
         EXPECT_EQ(keys[i], i + 1);
@@ -174,8 +183,8 @@ TEST(opencl, bitonic_sort_global) {
         values[i] = ((N - i) % 2) * 10;
     }
 
-    cl::Buffer buffer_keys(queue, keys.begin(), keys.end(), false, false);
-    cl::Buffer buffer_values(queue, values.begin(), values.end(), false, false);
+    cl::Buffer buffer_keys(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(unsigned int) * keys.size(), keys.data());
+    cl::Buffer buffer_values(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(int) * values.size(), values.data());
 
     std::string kernel_code = source_sort_bitonic;
 
@@ -188,12 +197,15 @@ TEST(opencl, bitonic_sort_global) {
     kernel.setArg(2, N);
     kernel.setArg(3, 2);
 
-    cl::NDRange global(256);
-    cl::NDRange local(256);
-    queue.enqueueNDRangeKernel(kernel, cl::NDRange(), global, local);
+    size_t max_wg;
+    device.getInfo(CL_DEVICE_MAX_WORK_GROUP_SIZE, &max_wg);
 
-    cl::copy(queue, buffer_keys, keys.begin(), keys.end());
-    cl::copy(queue, buffer_values, values.begin(), values.end());
+    cl::NDRange global_range(max_wg);
+    cl::NDRange local_range(max_wg);
+    queue.enqueueNDRangeKernel(kernel, cl::NDRange(), global_range, local_range);
+
+    queue.enqueueReadBuffer(buffer_keys, CL_TRUE, 0, sizeof(unsigned int) * keys.size(), keys.data());
+    queue.enqueueReadBuffer(buffer_values, CL_TRUE, 0, sizeof(int) * values.size(), values.data());
 
     for (int i = 0; i < N; ++i) {
         EXPECT_EQ(keys[i], i + 1);
@@ -222,39 +234,49 @@ TEST(opencl, custom_value) {
     cl::Context      context(device);
     cl::CommandQueue queue(context);
 
-    struct f2 {
-        float x;
-        float y;
-    };
+    const int N      = 64;
+    float     init_x = 1.0f;
+    float     init_y = 2.0f;
 
-    f2 init{1.0f, 2.0f};
+    std::vector<float> host_x(N);
+    std::vector<float> host_y(N);
 
-    const int       N = 64;
-    std::vector<f2> host(N);
-    cl::Buffer      buffer(context, CL_MEM_WRITE_ONLY, sizeof(f2) * N);
+    cl::Buffer buffer_x(context, CL_MEM_READ_WRITE, sizeof(float) * N);
+    cl::Buffer buffer_y(context, CL_MEM_READ_WRITE, sizeof(float) * N);
 
     std::string kernel_code =
-            "struct f2 {\n"
-            "        float x;\n"
-            "        float y;\n"
-            "};"
-            ""
-            "__kernel void fill(__global struct f2* buffer, struct f2 value) {"
-            "  buffer[get_global_id(0)] = value;"
+            "__kernel void fill(__global float* buffer_x, __global float* buffer_y, float value_x, float value_y) {"
+            "    size_t idx = get_global_id(0);"
+            "    buffer_x[idx] = value_x;"
+            "    buffer_y[idx] = value_y;"
             "}";
 
     cl::Program program(context, kernel_code);
     program.build(device, "-cl-std=CL1.2");
 
     cl::Kernel kernel(program, "fill");
-    kernel.setArg(0, buffer);
-    kernel.setArg(1, init);
-    queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(N), cl::NDRange(32));
-    queue.enqueueReadBuffer(buffer, true, 0, sizeof(f2) * N, host.data());
+    kernel.setArg(0, buffer_x);
+    kernel.setArg(1, buffer_y);
+    kernel.setArg(2, init_x);
+    kernel.setArg(3, init_y);
 
-    for (auto& v : host) {
-        EXPECT_EQ(v.x, init.x);
-        EXPECT_EQ(v.y, init.y);
+    size_t max_wg;
+    device.getInfo(CL_DEVICE_MAX_WORK_GROUP_SIZE, &max_wg);
+    size_t local_size  = std::min((size_t) 32, max_wg);
+    size_t global_size = ((N + local_size - 1) / local_size) * local_size;
+
+    cl::NDRange global_range(global_size);
+    cl::NDRange local_range(local_size);
+
+    queue.enqueueNDRangeKernel(kernel, cl::NullRange, global_range, local_range);
+    queue.finish();
+
+    queue.enqueueReadBuffer(buffer_x, CL_TRUE, 0, sizeof(float) * N, host_x.data());
+    queue.enqueueReadBuffer(buffer_y, CL_TRUE, 0, sizeof(float) * N, host_y.data());
+
+    for (int i = 0; i < N; ++i) {
+        EXPECT_EQ(host_x[i], init_x);
+        EXPECT_EQ(host_y[i], init_y);
     }
 }
 
@@ -373,13 +395,16 @@ TEST(opencl, reduce_by_key_small) {
 
     cl::Event event;
 
-    cl::NDRange global(128);
-    cl::NDRange local = global;
+    size_t max_wg;
+    device.getInfo(CL_DEVICE_MAX_WORK_GROUP_SIZE, &max_wg);
+
+    cl::NDRange global_range(max_wg);
+    cl::NDRange local_range(max_wg);
 
     std::this_thread::sleep_for(std::chrono::milliseconds{10});
 
     for (int i = 0; i < 20; i++) {
-        queue.enqueueNDRangeKernel(kernel, cl::NullRange, global, local, nullptr, &event);
+        queue.enqueueNDRangeKernel(kernel, cl::NullRange, global_range, local_range, nullptr, &event);
         event.wait();
 
         double kernel_queue = event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - event.getProfilingInfo<CL_PROFILING_COMMAND_QUEUED>();
