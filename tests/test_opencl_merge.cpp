@@ -403,7 +403,7 @@ void cl_merge_v2(const cl::CommandQueue& queue,
 
     cl::Kernel kernel_loc = cl_merge_group_per_tile(buf_arr_a, buf_arr_b, buf_tile_a, buf_tile_b, buf_arr_result, program_loc_v2);
 
-    queue.enqueueNDRangeKernel(kernel_gl, cl::NDRange(), std::max(count_tile, uint(64)));
+    queue.enqueueNDRangeKernel(kernel_gl, cl::NDRange(), count_tile);
 
     queue.enqueueNDRangeKernel(kernel_loc, cl::NDRange(),
                                count_tile * GROUP_SIZE, GROUP_SIZE);
@@ -476,8 +476,8 @@ TEST(opencl_merge, merge_path_v1) {
         std::sort(arr_a.begin(), arr_a.end());
         std::sort(arr_b.begin(), arr_b.end());
 
-        cl::Buffer buf_arr_a(queue, arr_a.begin(), arr_a.end(), true, false);
-        cl::Buffer buf_arr_b(queue, arr_b.begin(), arr_b.end(), true, false);
+        cl::Buffer buf_arr_a(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(T) * size_arr_a, arr_a.data());
+        cl::Buffer buf_arr_b(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(T) * size_arr_b, arr_b.data());
         cl::Buffer buf_arr_res(context, CL_MEM_READ_WRITE, sizeof(T) * (size_arr_a + size_arr_b));
 
         start_time = std::chrono::steady_clock::now();
@@ -486,8 +486,7 @@ TEST(opencl_merge, merge_path_v1) {
         end_time = std::chrono::steady_clock::now();
 
         std::cout << " gpu " << (std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(end_time - start_time)).count() << " ms";
-
-        cl::copy(queue, buf_arr_res, arr_c.begin(), arr_c.end());
+        queue.enqueueReadBuffer(buf_arr_res, CL_TRUE, 0, sizeof(T) * (size_arr_a + size_arr_b), arr_c.data());
         result_time_gpu += (end_time - start_time);
 
         start_time       = std::chrono::steady_clock::now();
@@ -542,20 +541,35 @@ TEST(opencl_merge, merge_path_v2) {
     cl::Program program_loc_v2;
 
     program_gl = cl::Program(context, kernel_global);
-    program_gl.build(device, "-cl-std=CL1.2 -DTILE_SIZE=128 -DTYPE=int");
 
-    program_loc_v2 = cl::Program(context, kernel_merge_v2_group_per_tile);
-    program_loc_v2.build(device, "-cl-std=CL1.2 -DTILE_SIZE=128 -DGROUP_SIZE=64 -DMICRO_TILE_SIZE=TILE_SIZE/GROUP_SIZE -DTYPE=int");
+
+    program_loc_v2    = cl::Program(context, kernel_merge_v2_group_per_tile);
+    uint   GROUP_SIZE = 64;
+    size_t max_wg     = 0;
+    device.getInfo(CL_DEVICE_MAX_WORK_GROUP_SIZE, &max_wg);
+    GROUP_SIZE = std::min((uint) max_wg, GROUP_SIZE);
+    std::ostringstream build_options2;
+    build_options2 << "-cl-std=CL1.2 -DTILE_SIZE=" << GROUP_SIZE << " -DTYPE=int";
+    program_gl.build(device, build_options2.str().c_str());
+    std::ostringstream build_options;
+    build_options << "-cl-std=CL1.2 "
+                  << "-DTILE_SIZE="
+                  << GROUP_SIZE
+                  << " -DGROUP_SIZE="
+                  << GROUP_SIZE
+                  << " -DMICRO_TILE_SIZE=TILE_SIZE/GROUP_SIZE "
+                  << "-DTYPE=int ";
+
+    program_loc_v2.build(device, build_options.str().c_str());
 
     std::chrono::time_point                   start_time      = std::chrono::steady_clock::now();
     std::chrono::time_point                   end_time        = std::chrono::steady_clock::now();
     std::chrono::duration<double, std::milli> result_time_cpu = end_time - start_time;
     std::chrono::duration<double, std::milli> result_time_gpu = end_time - start_time;
 
-    const uint N_RUNS     = 10;
-    const uint N          = 1 * 1024 * 1024;
-    const uint TILE_SIZE  = 128;
-    const uint GROUP_SIZE = 64;
+    const uint N_RUNS    = 10;
+    const uint N         = 1 * 1024 * 1024;
+    const uint TILE_SIZE = GROUP_SIZE;
 
     for (uint t = 0; t < N_RUNS; t++) {
         std::cout << "Test #" << t + 1 << " ";
@@ -573,8 +587,8 @@ TEST(opencl_merge, merge_path_v2) {
         std::sort(arr_a.begin(), arr_a.end());
         std::sort(arr_b.begin(), arr_b.end());
 
-        cl::Buffer buf_arr_a(queue, arr_a.begin(), arr_a.end(), true, false);
-        cl::Buffer buf_arr_b(queue, arr_b.begin(), arr_b.end(), true, false);
+        cl::Buffer buf_arr_a(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(T) * size_arr_a, arr_a.data());
+        cl::Buffer buf_arr_b(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(T) * size_arr_b, arr_b.data());
         cl::Buffer buf_arr_res(context, CL_MEM_READ_WRITE, sizeof(T) * (size_arr_a + size_arr_b));
 
         start_time = std::chrono::steady_clock::now();
@@ -584,7 +598,7 @@ TEST(opencl_merge, merge_path_v2) {
 
         std::cout << " gpu " << (std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(end_time - start_time)).count() << " ms";
 
-        cl::copy(queue, buf_arr_res, arr_c.begin(), arr_c.end());
+        queue.enqueueReadBuffer(buf_arr_res, CL_TRUE, 0, sizeof(T) * (size_arr_a + size_arr_b), arr_c.data());
         result_time_gpu += (end_time - start_time);
 
         start_time       = std::chrono::steady_clock::now();

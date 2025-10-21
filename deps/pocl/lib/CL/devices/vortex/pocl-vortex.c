@@ -283,8 +283,10 @@ cl_int pocl_vortex_uninit (unsigned j, cl_device_id dev) {
 
 int pocl_vortex_init_context (cl_device_id dev, cl_context context) {
   vortex_device_data_t *dd = (vortex_device_data_t *)dev->data;
-  if (NULL == dd)
-    return CL_SUCCESS;
+  if (NULL == dd) {
+      pocl_vortex_init(0, dev, NULL);
+      dd = (vortex_device_data_t*) dev->data;
+  }
 
   dd->ctx_refcount++;
 
@@ -755,7 +757,8 @@ void pocl_vortex_submit (_cl_command_node *node, cl_command_queue cq) {
 
 void pocl_vortex_flush (cl_device_id dev, cl_command_queue cq) {
   vortex_device_data_t *dd = (vortex_device_data_t *)dev->data;
-
+  if (dd == NULL)
+      return;
   POCL_LOCK (dd->cq_lock);
   vortex_command_scheduler (dd);
   POCL_UNLOCK (dd->cq_lock);
