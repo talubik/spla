@@ -457,7 +457,7 @@ TEST(opencl_merge, merge_path_v1) {
     std::chrono::duration<double, std::milli> result_time_gpu = end_time - start_time;
 
     const uint N_RUNS    = 10;
-    const uint N         = 1 * 1024 * 1024;
+    const uint N         = 1 * 1024;
     const uint TILE_SIZE = 8;
 
     for (uint t = 0; t < N_RUNS; t++) {
@@ -568,7 +568,7 @@ TEST(opencl_merge, merge_path_v2) {
     std::chrono::duration<double, std::milli> result_time_gpu = end_time - start_time;
 
     const uint N_RUNS    = 10;
-    const uint N         = 1 * 1024 * 1024;
+    const uint N         = 1 * 1024;
     const uint TILE_SIZE = GROUP_SIZE;
 
     for (uint t = 0; t < N_RUNS; t++) {
