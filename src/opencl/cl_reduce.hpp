@@ -50,7 +50,7 @@ namespace spla {
         auto*      cl_acc               = get_acc_cl();
         const uint max_block_size       = 1024;
         const uint max_small_block_size = 128u;
-        const uint block_size           = std::min(max_block_size, get_acc_cl()->get_max_wgs());
+        const uint block_size           = std::min(max_block_size, get_acc_cl()->get_default_wgs());
         const uint block_size_small     = std::min(block_size, max_small_block_size);
 
         cl::Buffer cl_sum(cl_acc->get_context(), CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, sizeof(T));

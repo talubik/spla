@@ -162,9 +162,22 @@ namespace spla {
                    m_vendor_name.find("vortex") != std::string::npos ||
                    m_vendor_name.find("VORTEX") != std::string::npos ||
                    m_vendor_id == 0) {
+            std::string name        = m_device.getInfo<CL_DEVICE_NAME>();
+            auto        parse_after = [&](char ch) -> int {
+                size_t p = name.find(ch);
+                if (p == std::string::npos) return 0;
+                ++p;
+                if (p >= name.size() || !std::isdigit((unsigned char) name[p])) return 0;
+                int val = 0;
+                while (p < name.size() && std::isdigit((unsigned char) name[p])) val = val * 10 + (name[p++] - '0');
+                return val;
+            };
+
+            int num_warps         = parse_after('W');
+            int num_threads       = parse_after('T');
             m_vendor_code         = VENDOR_CODE_VORTEX_GPU;
-            m_default_wgs         = 16;
-            m_wave_size           = 4;
+            m_default_wgs         = num_warps * num_threads;
+            m_wave_size           = num_threads;
             m_is_vortex           = true;
             m_supports_copyBuffer = false;
             m_max_local_mem /= 4;
@@ -185,7 +198,9 @@ namespace spla {
              << " mcu:" << m_max_cu
              << " wave:" << m_wave_size
              << " mwgs:" << m_max_wgs
-             << " ext: " << ext;
+             << " ext: " << ext
+             << " wgs:" << m_default_wgs
+             << " wave_size:" << m_wave_size;
 
 
         m_description = desc.str();
