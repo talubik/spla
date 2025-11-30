@@ -17,6 +17,10 @@ int _Z14_cl_atomic_addPU7CLlocalVii(volatile void* ptr, int val) {
     return _vx_atomic_add_asm(ptr, val);
 }
 
+int _Z14_cl_atomic_addPU8CLglobalVjj(volatile void* ptr, unsigned int val) {
+    return _vx_atomic_add_asm(ptr, (int) val);
+}
+
 // atomic_inc
 
 int _Z14_cl_atomic_incPU8CLglobalVi(volatile void* ptr) {
