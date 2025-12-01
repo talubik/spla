@@ -1,11 +1,13 @@
 # Building SPLA to work with Vortex GPU
 
-### Prerequisites
-- Vortex:
-  [Vortex GPGPU GitHub](https://github.com/vortexgpgpu/vortex)
-- Build Vortex
+### First step
 
-## First step
+- Build vortex
+```shell
+python ./build_vortex.py
+```
+
+## Second step
 
 - Run build with these arguments
 ```shell
@@ -13,7 +15,7 @@ python ./build.py [other options] --vortex=YES --vortex-dir=<path_to_vortex_dir>
 --vortex-tooldir=<path_to_vortex_tools> 
 ```
 
-## Second step
+## Third step
 
 - Configure vortex
 

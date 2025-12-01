@@ -43,4 +43,4 @@ jobs:
       - name: Run tests on vortex simx
         run: |
           source ./deps/vortex/build/ci/toolchain_env.sh
-          ./deps/vortex/build/ci/./ci/blackbox.sh --driver=simx --app=opencl/atomics
+          ./deps/vortex/build/ci/blackbox.sh --driver=simx --app=opencl/atomics
