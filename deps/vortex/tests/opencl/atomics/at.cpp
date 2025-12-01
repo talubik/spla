@@ -97,7 +97,7 @@ __kernel void atomic_cmpxchg_test_u(global uint* data) {
 
 )CLC";
 
-void run_test(const std::string &test_name, cl::Context &context,
+bool run_test(const std::string &test_name, cl::Context &context,
               cl::CommandQueue &queue, cl::Program &program, cl::Buffer &buffer,
               int N, int expected, int buffer_offset) {
   cl::Kernel kernel(program, test_name.c_str());
@@ -112,12 +112,14 @@ void run_test(const std::string &test_name, cl::Context &context,
                           sizeof(int), &result);
   queue.finish();
 
+  bool success = (result == expected);
   std::cout << test_name << ":\n"
             << "  Expected: " << expected << ", Received: " << result
-            << (result == expected ? " (SUCCESS)" : " (FAILURE)") << std::endl;
+            << (success ? " (SUCCESS)" : " (FAILURE)") << std::endl;
+  return success;
 }
 
-void run_test_u(const std::string &test_name, cl::Context &context,
+bool run_test_u(const std::string &test_name, cl::Context &context,
                 cl::CommandQueue &queue, cl::Program &program, cl::Buffer &buffer,
                 int N, unsigned int expected, int buffer_offset) {
   cl::Kernel kernel(program, test_name.c_str());
@@ -132,9 +134,11 @@ void run_test_u(const std::string &test_name, cl::Context &context,
                           sizeof(unsigned int), &result);
   queue.finish();
 
+  bool success = (result == expected);
   std::cout << test_name << ":\n"
             << "  Expected: " << expected << ", Received: " << result
-            << (result == expected ? " (SUCCESS)" : " (FAILURE)") << std::endl;
+            << (success ? " (SUCCESS)" : " (FAILURE)") << std::endl;
+  return success;
 }
 
 int main() {
@@ -225,19 +229,21 @@ int main() {
     return 3;
   }
 
-  run_test("atomic_add_test", context, queue, program, buffer, N, N, 0);
-  run_test("atomic_sub_test", context, queue, program, buffer, N, 0, 1);
-  run_test("atomic_inc_test", context, queue, program, buffer, N, N, 2);
-  run_test("atomic_dec_test", context, queue, program, buffer, N, 0, 3);
-  run_test("atomic_min_test", context, queue, program, buffer, N, 0, 4);
-  run_test("atomic_max_test", context, queue, program, buffer, N, N - 1, 5);
+  bool all_passed = true;
+
+  all_passed &= run_test("atomic_add_test", context, queue, program, buffer, N, N, 0);
+  all_passed &= run_test("atomic_sub_test", context, queue, program, buffer, N, 0, 1);
+  all_passed &= run_test("atomic_inc_test", context, queue, program, buffer, N, N, 2);
+  all_passed &= run_test("atomic_dec_test", context, queue, program, buffer, N, 0, 3);
+  all_passed &= run_test("atomic_min_test", context, queue, program, buffer, N, 0, 4);
+  all_passed &= run_test("atomic_max_test", context, queue, program, buffer, N, N - 1, 5);
 
   int and_expected_val = ~((1 << N) - 1);
-  run_test("atomic_and_test", context, queue, program, buffer, N,
-           and_expected_val, 6);
-  run_test("atomic_or_test", context, queue, program, buffer, N,
-           (1 << N) - 1, 7);
-  run_test("atomic_xor_test", context, queue, program, buffer, N, (N % 2), 8);
+  all_passed &= run_test("atomic_and_test", context, queue, program, buffer, N,
+                         and_expected_val, 6);
+  all_passed &= run_test("atomic_or_test", context, queue, program, buffer, N,
+                         (1 << N) - 1, 7);
+  all_passed &= run_test("atomic_xor_test", context, queue, program, buffer, N, (N % 2), 8);
 
   cl::Kernel xchg_kernel(program, "atomic_xchg_test");
   xchg_kernel.setArg(0, buffer);
@@ -247,24 +253,27 @@ int main() {
   int xchg_result = 0;
   queue.enqueueReadBuffer(buffer, CL_TRUE, sizeof(int) * 9, sizeof(int),
                           &xchg_result);
+  bool xchg_success = (xchg_result >= 0 && xchg_result < N);
   std::cout << "atomic_xchg_test:\n"
             << "  Expected: value in [0, " << N - 1 << "], Received: " << xchg_result
-            << ((xchg_result >= 0 && xchg_result < N) ? " (SUCCESS)" : " (FAILURE)") << std::endl;
-  run_test("atomic_cmpxchg_test", context, queue, program, buffer, N, 999, 10);
+            << (xchg_success ? " (SUCCESS)" : " (FAILURE)") << std::endl;
+  all_passed &= xchg_success;
+
+  all_passed &= run_test("atomic_cmpxchg_test", context, queue, program, buffer, N, 999, 10);
 
   std::cout << "\n--- Unsigned Global Atomics Tests ---\n";
-  run_test_u("atomic_add_test_u", context, queue, program, buffer, N, N, 11);
-  run_test_u("atomic_sub_test_u", context, queue, program, buffer, N, 0, 12);
-  run_test_u("atomic_inc_test_u", context, queue, program, buffer, N, N, 13);
-  run_test_u("atomic_dec_test_u", context, queue, program, buffer, N, 0, 14);
-  run_test_u("atomic_min_test_u", context, queue, program, buffer, N, 0, 15);
-  run_test_u("atomic_max_test_u", context, queue, program, buffer, N, N - 1, 16);
+  all_passed &= run_test_u("atomic_add_test_u", context, queue, program, buffer, N, N, 11);
+  all_passed &= run_test_u("atomic_sub_test_u", context, queue, program, buffer, N, 0, 12);
+  all_passed &= run_test_u("atomic_inc_test_u", context, queue, program, buffer, N, N, 13);
+  all_passed &= run_test_u("atomic_dec_test_u", context, queue, program, buffer, N, 0, 14);
+  all_passed &= run_test_u("atomic_min_test_u", context, queue, program, buffer, N, 0, 15);
+  all_passed &= run_test_u("atomic_max_test_u", context, queue, program, buffer, N, N - 1, 16);
 
-  run_test_u("atomic_and_test_u", context, queue, program, buffer, N,
-             (unsigned int)and_expected_val, 17);
-  run_test_u("atomic_or_test_u", context, queue, program, buffer, N,
-             (unsigned int)((1 << N) - 1), 18);
-  run_test_u("atomic_xor_test_u", context, queue, program, buffer, N, (unsigned int)(N % 2), 19);
+  all_passed &= run_test_u("atomic_and_test_u", context, queue, program, buffer, N,
+                           (unsigned int)and_expected_val, 17);
+  all_passed &= run_test_u("atomic_or_test_u", context, queue, program, buffer, N,
+                           (unsigned int)((1 << N) - 1), 18);
+  all_passed &= run_test_u("atomic_xor_test_u", context, queue, program, buffer, N, (unsigned int)(N % 2), 19);
 
   cl::Kernel xchg_kernel_u(program, "atomic_xchg_test_u");
   xchg_kernel_u.setArg(0, buffer);
@@ -274,11 +283,17 @@ int main() {
   unsigned int xchg_result_u = 0;
   queue.enqueueReadBuffer(buffer, CL_TRUE, sizeof(unsigned int) * 20, sizeof(unsigned int),
                           &xchg_result_u);
+  bool xchg_u_success = (xchg_result_u < (unsigned int)N);
   std::cout << "atomic_xchg_test_u:\n"
             << "  Expected: value in [0, " << N - 1 << "], Received: " << xchg_result_u
-            << ((xchg_result_u >= 0 && xchg_result_u < (unsigned int)N) ? " (SUCCESS)" : " (FAILURE)") << std::endl;
+            << (xchg_u_success ? " (SUCCESS)" : " (FAILURE)") << std::endl;
+  all_passed &= xchg_u_success;
 
-  run_test_u("atomic_cmpxchg_test_u", context, queue, program, buffer, N, 999, 21);
+  all_passed &= run_test_u("atomic_cmpxchg_test_u", context, queue, program, buffer, N, 999, 21);
 
+  if (!all_passed) {
+    std::cerr << "Some tests failed!" << std::endl;
+    return 1;
+  }
   return 0;
 }
