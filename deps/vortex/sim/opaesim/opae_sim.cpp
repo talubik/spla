@@ -62,6 +62,7 @@
 
 #define CPU_GPU_LATENCY 200
 
+
 using namespace vortex;
 
 static uint32_t g_mem_bank_addr_width = (PLATFORM_MEMORY_ADDR_WIDTH - log2ceil(PLATFORM_MEMORY_NUM_BANKS));
@@ -236,6 +237,13 @@ public:
     memcpy(device_->vcp2af_sRxPort_c0_data, &value, 8);
     this->tick();
     device_->vcp2af_sRxPort_c0_mmioWrValid = 0;
+  }
+
+  void copy(uint64_t dest, uint64_t src, uint64_t size) {
+    
+    std::lock_guard<std::mutex> guard(mutex_);
+
+    ram_->copy(dest, src, size);
   }
 
 private:
@@ -563,6 +571,10 @@ void opae_sim::get_io_address(uint64_t wsid, uint64_t *ioaddr) {
 
 void opae_sim::write_mmio64(uint32_t mmio_num, uint64_t offset, uint64_t value) {
   impl_->write_mmio64(mmio_num, offset, value);
+}
+
+void opae_sim::copy(uint64_t dest, uint64_t src, uint64_t size) {
+  impl_->copy(dest, src, size);
 }
 
 void opae_sim::read_mmio64(uint32_t mmio_num, uint64_t offset, uint64_t *value) {

@@ -179,7 +179,7 @@ namespace spla {
             m_default_wgs         = num_warps * num_threads;
             m_wave_size           = num_threads;
             m_is_vortex           = true;
-            m_supports_copyBuffer = false;
+            // m_supports_copyBuffer = false;
             m_max_local_mem /= 4;
         }
 

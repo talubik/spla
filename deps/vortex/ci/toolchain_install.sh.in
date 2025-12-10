@@ -18,7 +18,7 @@ set -e
 
 REPOSITORY=https://github.com/vortexgpgpu/vortex-toolchain-prebuilt/raw/master
 TOOLDIR=${TOOLDIR:=@TOOLDIR@}
-OSVERSION=ubuntu/focal
+OSVERSION=${OSVERSION:=@OSVERSION@}
 
 riscv32()
 {
@@ -107,7 +107,7 @@ libc64()
 
 pocl()
 {
-   wget $REPOSITORY/pocl/$OSVERSION/pocl2.tar.bz2
+    wget $REPOSITORY/pocl/$OSVERSION/pocl2.tar.bz2
     tar -xvf pocl2.tar.bz2
     mkdir -p $TOOLDIR && rm -rf $TOOLDIR/pocl && mv pocl $TOOLDIR
     rm -rf pocl2 pocl2.tar.bz2
@@ -178,8 +178,8 @@ while [ "$1" != "" ]; do
         --yosys ) yosys
                 ;;
         --all ) pocl
-                llvm
                 verilator
+                llvm
                 libcrt32
                 libcrt64
                 libc32
