@@ -16,6 +16,7 @@ def main():
     vortex_config_args = [
         f"{args.vortex_dir}/build/ci/blackbox.sh",
         "--app=opencl/vecadd",
+        "--perf=1"
     ]
     if args.driver:
         vortex_config_args += [f"--driver={args.driver}"]
@@ -34,7 +35,7 @@ def main():
         if int(args.l3cache) == 1:
             vortex_config_args += [f"--l3cache"]
     result = subprocess.run(
-        vortex_config_args, capture_output=True, text=True, timeout=55.0
+        vortex_config_args, capture_output=True, text=True, timeout=175.0
     )
     export_line = None
     if result.returncode != 0:

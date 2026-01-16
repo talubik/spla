@@ -67,6 +67,7 @@ uint lower_bound_local(const uint          x,
     }
     return first;
 }
+    
 __kernel void map(__global TYPE* restrict g_r,
                   __global const TYPE* restrict g_v,
                   const uint N) {
