@@ -227,7 +227,7 @@ namespace spla {
         m_alloc_general = std::make_unique<CLAllocGeneral>();
         m_alloc_tmp     = m_alloc_general.get();
 
-        if (!is_nvidia()) {
+        if (!is_nvidia() && !is_vortex()) {
             m_alloc_linear = std::make_unique<CLAllocLinear>(CLAllocLinear::DEFAULT_SIZE, m_addr_align);
             m_alloc_tmp    = m_alloc_linear.get();
         }

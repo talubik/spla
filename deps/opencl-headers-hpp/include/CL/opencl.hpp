@@ -525,6 +525,12 @@
 #include <CL/opencl.h>
 #endif // !__APPLE__
 
+#ifndef CL_MAKE_VERSION
+    // Remove (cl_version) casts so the preprocessor can evaluate this
+    #define CL_MAKE_VERSION(major, minor, patch) \
+        ((((major)) << 22) | (((minor)) << 12) | ((patch)))
+#endif
+
 #if __cplusplus >= 201703L
 # define CL_HPP_DEFINE_STATIC_MEMBER_ inline
 #elif defined(_MSC_VER)

@@ -35,7 +35,7 @@ def main():
         if int(args.l3cache) == 1:
             vortex_config_args += [f"--l3cache"]
     result = subprocess.run(
-        vortex_config_args, capture_output=True, text=True, timeout=175.0
+        vortex_config_args, capture_output=True, text=True, timeout=600.0
     )
     export_line = None
     if result.returncode != 0:
@@ -51,7 +51,7 @@ def main():
     if export_line is None:
         return
 
-    print(f"export {" ".join(export_line.split()[:-2])}")
+    print(f"export {' '.join(export_line.split()[:-2])}")
 
 
 if __name__ == "__main__":
